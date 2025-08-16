@@ -1,4 +1,4 @@
-﻿using ExaminantionSystem.Dtos.Courcse;
+﻿using ExaminantionSystem.Entities.Dtos.Courcse;
 using ExaminantionSystem.Entities.Wrappers;
 
 namespace ExaminantionSystem.Service
