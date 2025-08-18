@@ -4,6 +4,6 @@
     {
         // Navigation properties
         public ICollection<StudentCourse> StudentCourses { get; set; }
-        public ICollection<StudentExam> StudentExams { get; set; }
+        public ICollection<ExamResult> ExamResults { get; set; }
     }
 }

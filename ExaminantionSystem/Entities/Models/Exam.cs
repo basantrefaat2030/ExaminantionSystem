@@ -27,6 +27,6 @@ namespace ExaminantionSystem.Entities.Models
 
         public virtual Course Course { get; set; }
         public virtual  ICollection<ExamQuestion> ExamQuestions { get; set; }
-        public virtual ICollection<ExamResult> Results { get; set; }
+        public virtual ICollection<ExamResult> ExamResults { get; set; }
     }
 }

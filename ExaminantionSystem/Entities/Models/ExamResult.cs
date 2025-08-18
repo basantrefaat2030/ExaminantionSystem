@@ -1,21 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
 
 namespace ExaminantionSystem.Entities.Models
 {
-    public class ExamResult :AuditEntity
+    public class ExamResult :BaseEntity
     {
-        //composite key
+        // Composite key
+        [ForeignKey("Student")]
+        public int StudentId { get; set; }
         [ForeignKey("Exam")]
         public int ExamId { get; set; }
 
-        [ForeignKey("Student")]
-        public int StudentId { get; set; }
+        // Properties
+        public DateTime? StartedAt { get; set; }
+        public DateTime? SubmittedAt { get; set; }
+        public double Score { get; set; }
+        public int TotalQuestions { get; set; }
 
-        public decimal Score { get; set; }          // Total marks obtained
-        public decimal TotalMarks { get; set; }     // Max possible marks
-        public virtual Exam Exam { get; set; }
+        // Navigation properties
         public virtual Student Student { get; set; }
-
+        public virtual Exam Exam { get; set; }
+        public virtual ICollection<StudentAnswer> StudentAnswers { get; set; }
     }
 }
