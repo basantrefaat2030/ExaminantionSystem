@@ -10,7 +10,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<ExamQuestion> builder)
         {
-            builder.HasKey(eq => new {eq.ExamId , eq.QuestionId});
+            //builder.HasKey(eq => new {eq.ExamId , eq.QuestionId});
 
             builder
               .HasOne(eq => eq.Exam)

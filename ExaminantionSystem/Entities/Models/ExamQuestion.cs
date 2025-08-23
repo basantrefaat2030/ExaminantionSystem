@@ -2,7 +2,7 @@
 
 namespace ExaminantionSystem.Entities.Models
 {
-    public class ExamQuestion :AuditEntity
+    public class ExamQuestion : BaseEntity
     {
         //composite key
         [ForeignKey("Exam")]

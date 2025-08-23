@@ -33,6 +33,9 @@ namespace ExaminantionSystem.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -51,6 +54,9 @@ namespace ExaminantionSystem.Migrations
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -72,6 +78,9 @@ namespace ExaminantionSystem.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -95,6 +104,9 @@ namespace ExaminantionSystem.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("InstructorId");
@@ -115,6 +127,9 @@ namespace ExaminantionSystem.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -150,6 +165,9 @@ namespace ExaminantionSystem.Migrations
                     b.Property<int>("TotalQuestions")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");
@@ -161,17 +179,23 @@ namespace ExaminantionSystem.Migrations
 
             modelBuilder.Entity("ExaminantionSystem.Entities.Models.ExamQuestion", b =>
                 {
-                    b.Property<int>("ExamId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("QuestionId")
-                        .HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("ExamId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -179,7 +203,15 @@ namespace ExaminantionSystem.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.HasKey("ExamId", "QuestionId");
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamId");
 
                     b.HasIndex("QuestionId");
 
@@ -196,6 +228,9 @@ namespace ExaminantionSystem.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -224,6 +259,9 @@ namespace ExaminantionSystem.Migrations
                     b.Property<int>("TotalQuestions")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ExamId");
@@ -243,6 +281,9 @@ namespace ExaminantionSystem.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -266,6 +307,9 @@ namespace ExaminantionSystem.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("InstructorId");
@@ -287,6 +331,9 @@ namespace ExaminantionSystem.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -302,6 +349,9 @@ namespace ExaminantionSystem.Migrations
                     b.Property<int>("QuestionId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ChoiceId");
@@ -315,14 +365,20 @@ namespace ExaminantionSystem.Migrations
 
             modelBuilder.Entity("ExaminantionSystem.Entities.Models.StudentCourse", b =>
                 {
-                    b.Property<int>("StudentId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -342,9 +398,17 @@ namespace ExaminantionSystem.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.HasKey("StudentId", "CourseId");
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("CourseId");
+
+                    b.HasIndex("StudentId");
 
                     b.ToTable("StudentCourses");
                 });
@@ -365,6 +429,9 @@ namespace ExaminantionSystem.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -395,6 +462,9 @@ namespace ExaminantionSystem.Migrations
                     b.Property<string>("PoheNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.ToTable("Users");
@@ -409,12 +479,12 @@ namespace ExaminantionSystem.Migrations
                             Id = 1,
                             City = "Cairo",
                             Country = "Egypt",
-                            CreatedAt = new DateTime(2025, 8, 19, 2, 39, 29, 596, DateTimeKind.Local).AddTicks(6940),
+                            CreatedAt = new DateTime(2025, 8, 24, 1, 35, 33, 695, DateTimeKind.Local).AddTicks(9789),
                             EmailAddress = "Admin123@school.com",
                             FullName = "Admin",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$YRy2vFD.FqSakW92Eir.ZOp8.POnDWH0MvDJAgQT0xJbMswSqCq6e"
+                            PasswordHash = "$2a$11$TbdllM8ZGjPQggBBRTyCyOke.AH3SPzWwcSg9ZAwDPWwiih4aK4X6"
                         });
                 });
 
@@ -442,14 +512,14 @@ namespace ExaminantionSystem.Migrations
                             Id = 2,
                             City = "Cairo",
                             Country = "Egypt",
-                            CreatedAt = new DateTime(2025, 8, 18, 23, 39, 29, 596, DateTimeKind.Utc).AddTicks(7523),
+                            CreatedAt = new DateTime(2025, 8, 23, 22, 35, 33, 696, DateTimeKind.Utc).AddTicks(283),
                             EmailAddress = "Instructor1@gmail.com",
                             FullName = "Instructor1",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$jNr83pPBmCUB8HuFP9Dts.0/.hAvans69lrwr8WjGjaE4unVVGQH2",
+                            PasswordHash = "$2a$11$6sXAQ7VQondsDMy2ryo1BOgUB1EsPz2SbcRAxb0LYp7n7sE1HE8tu",
                             PoheNumber = "01065692974",
-                            HireDate = new DateTime(2025, 8, 19, 2, 39, 29, 596, DateTimeKind.Local).AddTicks(7523),
+                            HireDate = new DateTime(2025, 8, 24, 1, 35, 33, 696, DateTimeKind.Local).AddTicks(284),
                             YearOfExperience = 3
                         },
                         new
@@ -457,14 +527,14 @@ namespace ExaminantionSystem.Migrations
                             Id = 3,
                             City = "Cairo",
                             Country = "Egypt",
-                            CreatedAt = new DateTime(2025, 8, 18, 23, 39, 29, 746, DateTimeKind.Utc).AddTicks(5249),
+                            CreatedAt = new DateTime(2025, 8, 23, 22, 35, 33, 829, DateTimeKind.Utc).AddTicks(2487),
                             EmailAddress = "Instructor2@gmail.com",
                             FullName = "Instructor2",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$gp15j4JkAvjCazMthe/wlOspliWIQxsQPqmJHVVPxw3LlQy9kOtrG",
+                            PasswordHash = "$2a$11$tim5leHiIFv/ZAoRrlkcHu..su/59OPrA4J6tCLiednNTkIOAYEXi",
                             PoheNumber = "01065692974",
-                            HireDate = new DateTime(2025, 8, 19, 2, 39, 29, 746, DateTimeKind.Local).AddTicks(5262),
+                            HireDate = new DateTime(2025, 8, 24, 1, 35, 33, 829, DateTimeKind.Local).AddTicks(2494),
                             YearOfExperience = 4
                         });
                 });
@@ -481,12 +551,12 @@ namespace ExaminantionSystem.Migrations
                             Id = 4,
                             City = "Cairo",
                             Country = "Egypt",
-                            CreatedAt = new DateTime(2025, 8, 18, 23, 39, 29, 878, DateTimeKind.Utc).AddTicks(9641),
+                            CreatedAt = new DateTime(2025, 8, 23, 22, 35, 33, 963, DateTimeKind.Utc).AddTicks(638),
                             EmailAddress = "basant2030@gmail.com",
                             FullName = "Basant Refaat ",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$gIXhSh8RUF1BJRytdK480eJcjcBk1XqHl6n9ds8pdiGqGXm/SrnrK",
+                            PasswordHash = "$2a$11$rIJcjDCshgt79VwvT.Ok/.WtEV76B2cCDUU8mkObhefbxzfOOlxre",
                             PoheNumber = "01065692974"
                         },
                         new
@@ -494,12 +564,12 @@ namespace ExaminantionSystem.Migrations
                             Id = 5,
                             City = "Cairo",
                             Country = "Egypt",
-                            CreatedAt = new DateTime(2025, 8, 18, 23, 39, 30, 10, DateTimeKind.Utc).AddTicks(3711),
+                            CreatedAt = new DateTime(2025, 8, 23, 22, 35, 34, 97, DateTimeKind.Utc).AddTicks(4190),
                             EmailAddress = "MuhammedMetwally2@gmail.com",
                             FullName = "Muhammed Metwally",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$6DujOlk5t8lDDsZ1IIWI.eGfTrlUECg1oqgFbOBn8NOiySlVnzxda",
+                            PasswordHash = "$2a$11$pSlO0/prOm2YCDAQcmST2ewddMh234ZTkW6cU3j50s77VVnmu9P26",
                             PoheNumber = "01065692974"
                         },
                         new
@@ -507,12 +577,12 @@ namespace ExaminantionSystem.Migrations
                             Id = 6,
                             City = "Cairo",
                             Country = "Egypt",
-                            CreatedAt = new DateTime(2025, 8, 18, 23, 39, 30, 141, DateTimeKind.Utc).AddTicks(9816),
+                            CreatedAt = new DateTime(2025, 8, 23, 22, 35, 34, 228, DateTimeKind.Utc).AddTicks(8373),
                             EmailAddress = "MaiMostafa20@gmail.com",
                             FullName = "Mai Mostafa",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$fbSdKVC9tqOAmq7tcRtjW.y4YI5C7ZWvR.5JhqrjngA1OP/G8HWDK",
+                            PasswordHash = "$2a$11$jvwAzf0Lf6wVczx4mwGu3.k3VjvS0pIYZjSxiV2EPJUIYBUnP5bNa",
                             PoheNumber = "01068692974"
                         });
                 });

@@ -13,7 +13,6 @@ namespace ExaminantionSystem.Service
         Task<Response<CourseDTO>> CreateCourseAsync(CourseDTO entity, int instructorId);
         Task<Response<CourseDTO>> UpdateCourseAsync(int id, CourseDTO entity);
         Task<Response<bool>> DeleteCourseAsync(int id);
-        Task<Response<IEnumerable<CourseDTO>>> GetInstructorCoursesAsync(int instructorId);
 
     }
     public class CourseService :ICourseService 
@@ -44,12 +43,6 @@ namespace ExaminantionSystem.Service
         {
             throw new NotImplementedException();
         }
-
-        public Task<Response<IEnumerable<CourseDTO>>> GetInstructorCoursesAsync(int instructorId)
-        {
-            throw new NotImplementedException();
-        }
-
         public Task<PagedResponse<CourseDTO>> GetPaginatedCoursesAsync(int pageNumber, int pageSize)
         {
             throw new NotImplementedException();

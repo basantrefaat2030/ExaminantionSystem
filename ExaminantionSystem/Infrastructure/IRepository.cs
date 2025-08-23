@@ -1,18 +1,25 @@
 ﻿using ExaminantionSystem.Entities.Wrappers;
+using Microsoft.EntityFrameworkCore.Query;
 using System.Linq.Expressions;
 
 namespace ExaminantionSystem.Infrastructure
 {
     public interface IRepository<TEntity>
     {
-        IQueryable<TEntity> GetAll(bool includeDeleted = false);
-        Task<TEntity?> GetByIdAsync(int id , bool includeDeleted = false);
+
+        IQueryable<TEntity> GetAll(bool includeDeleted = false , bool trackChanges = false);
+        IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> expression, bool includeDeleted = false, bool trackChanges = false);
+        Task<TEntity?> GetByIdAsync(int id , bool includeDeleted = false , bool trackChanges = false);
         Task AddAsync(TEntity entity);
+
+        Task AddRangeAsync(IEnumerable<TEntity> entities);
         Task UpdateAsync(TEntity entity);
-        Task DeleteAsync(int id);
+        Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls);
+        Task DeleteAsync(TEntity entity);
+        Task DeleteRangeAsync(IEnumerable<TEntity> entities);
 
-        IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> expression, bool includeDeleted = false);
-
+        // Tracking control
+        IQueryable<TEntity> AsTracking(IQueryable<TEntity> query);
         Task SaveChangesAsync();
 
     }

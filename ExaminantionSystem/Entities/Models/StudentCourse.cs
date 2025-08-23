@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ExaminantionSystem.Entities.Models
 {
-    public class StudentCourse :AuditEntity
+    public class StudentCourse :BaseEntity
     {
         //composite key
         [ForeignKey("Student")]

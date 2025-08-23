@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Entities\ViewModels\" />
     <Folder Include="Infrastructure\LocalDB\" />
   </ItemGroup>
 

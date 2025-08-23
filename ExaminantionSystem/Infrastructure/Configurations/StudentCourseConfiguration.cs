@@ -10,7 +10,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<StudentCourse> builder)
         {
-            builder.HasKey(sc => new { sc.StudentId, sc.CourseId });
+           // builder.HasKey(sc => new { sc.StudentId, sc.CourseId });
 
             builder.HasOne(sc => sc.Student)
                .WithMany(s => s.StudentCourses)

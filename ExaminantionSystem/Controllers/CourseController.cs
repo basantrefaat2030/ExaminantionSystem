@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using ExaminantionSystem.Service;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExaminantionSystem.Controllers
@@ -7,9 +8,26 @@ namespace ExaminantionSystem.Controllers
     [ApiController]
     public class CourseController : ControllerBase
     {
-        public CourseController() 
+        private readonly CourseService _courseService;
+        public CourseController(CourseService courseService) 
         { 
-        
+            _courseService = courseService;
         }
+
+        //public IActionResult AddCourse()
+        //{
+
+        //}
+
+        //public IActionResult EditCourse()
+        //{
+
+        //}
+
+        //public IActionResult DeleteCourse()
+        //{
+
+        //}
+
     }
 }
