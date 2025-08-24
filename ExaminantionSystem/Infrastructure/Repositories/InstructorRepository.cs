@@ -1,27 +1,38 @@
 ﻿using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace ExaminantionSystem.Infrastructure.Repositories
 {
-    public interface IInstructorRepository :IRepository<Instructor>
-    {
-        Task<bool>  CheckEnrollmentStatuse(int StudentId , int CourceId);
-        Task<IQueryable<Student>> GetAllEnrollStudents(int CourceId);
-    }
+    //public interface IInstructorRepository :IRepository<Instructor>
+    //{
+    //    Task<bool>  CheckEnrollmentStatuse(int StudentId , int CourceId);
+    //    Task<IQueryable<Student>> GetAllEnrollStudents(int CourceId);
+    //}
 
-    public class InstructorRepository : Repository<Instructor> , IInstructorRepository
+    public class InstructorRepository : Repository<Instructor> 
     {
-        public InstructorRepository(ExaminationContext context) : base(context) { }
+        private readonly ExaminationContext _context;
+        public InstructorRepository(ExaminationContext context) : base(context) { _context = context; }
 
-        public Task<bool> CheckEnrollmentStatuse(int StudentId, int CourceId)
+        public async Task<bool> InstructorHasCoursesAsync(int instructorId)
         {
-            throw new NotImplementedException();
+            return await _context.Courses
+                .AnyAsync(c => c.InstructorId == instructorId && !c.IsDeleted);
         }
 
-        public Task<IQueryable<Student>> GetAllEnrollStudents(int CourceId)
+        public async Task<int> GetInstructorCourseCountAsync(int instructorId)
         {
-            throw new NotImplementedException();
+            return await _context.Courses
+                .CountAsync(c => c.InstructorId == instructorId && !c.IsDeleted);
         }
+
+        public async Task<int> GetInstructorActiveCourseCountAsync(int instructorId)
+        {
+            return await _context.Courses
+                .CountAsync(c => c.InstructorId == instructorId && c.IsActive && !c.IsDeleted);
+        }
+
     }
 }

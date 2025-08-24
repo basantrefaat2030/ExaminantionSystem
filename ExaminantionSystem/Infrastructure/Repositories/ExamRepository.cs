@@ -1,22 +1,63 @@
 ﻿using ExaminantionSystem.Entities.Models;
+using ExaminantionSystem.Entities.Shared;
 using ExaminantionSystem.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ExaminantionSystem.Infrastructure.Repositories
 {
-    public interface IExamRepository :IRepository<Exam>
+    //public interface IExamRepository :IRepository<Exam>
+    //{
+    //    Task<IQueryable<Student>>GetAllStudentExamed();
+
+
+    //}
+
+    public class ExamRepository : Repository<Exam> 
     {
-        Task<IQueryable<Student>>GetAllStudentExamed();
+        private readonly ExaminationContext _context;
+        public ExamRepository(ExaminationContext context)  : base(context) { _context = context}
 
-
-    }
-
-    public class ExamRepository : Repository<Exam> , IExamRepository
-    {
-        public ExamRepository(ExaminationContext context)  : base(context) { }
-
-        public Task<IQueryable<Student>> GetAllStudentExamed()
+        public async Task<bool> ExamTitleExistsAsync(string title, int courseId)
         {
-            throw new NotImplementedException();
+            var query = _context.Exams
+                .Where(e => e.Title.ToLower() == title.ToLower() &&
+                          e.CourseId == courseId &&
+                          !e.IsDeleted);
+
+            return await query.AnyAsync();
+        }
+
+        public async Task<bool> ExamHasSubmissionsAsync(int examId)
+        {
+            return await _context.ExamResult
+                .AnyAsync(er => er.ExamId == examId && !er.IsDeleted);
+        }
+
+        public async Task<Exam> GetExamWithResultsAsync(int examId)
+        {
+            return await _context.Exams
+                .Include(e => e.ExamResults.Where(er => !er.IsDeleted))
+                    .ThenInclude(er => er.Student)
+                .FirstOrDefaultAsync(e => e.Id == examId && !e.IsDeleted);
+        }
+
+        public async Task<List<Exam>> GetCourseExamsAsync(int courseId, ExamType? examType = null)
+        {
+            var query = _context.Exams
+                .Where(e => e.CourseId == courseId && !e.IsDeleted);
+
+            if (examType.HasValue)
+                query = query.Where(e => e.Type == examType.Value);
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<bool> IsFinalExamCreatedAsync(int courseId)
+        {
+            return await _context.Exams
+                .AnyAsync(e => e.CourseId == courseId &&
+                             e.Type == ExamType.Final &&
+                             !e.IsDeleted);
         }
     }
 }

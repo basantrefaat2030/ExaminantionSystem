@@ -6,24 +6,23 @@ using ExaminantionSystem.Infrastructure.Repositories;
 
 namespace ExaminantionSystem.Service
 {
-    public interface ICourseService
-    {
-        Task<PagedResponse<CourseDTO>> GetPaginatedCoursesAsync(int pageNumber, int pageSize);
-        Task<Response<CourseDTO>> GetCourseByIdAsync(int id);
-        Task<Response<CourseDTO>> CreateCourseAsync(CourseDTO entity, int instructorId);
-        Task<Response<CourseDTO>> UpdateCourseAsync(int id, CourseDTO entity);
-        Task<Response<bool>> DeleteCourseAsync(int id);
+    //public interface ICourseService
+    //{
+    //    Task<PagedResponse<CourseDTO>> GetPaginatedCoursesAsync(int pageNumber, int pageSize);
+    //    Task<Response<CourseDTO>> GetCourseByIdAsync(int id);
+    //    Task<Response<CourseDTO>> CreateCourseAsync(CourseDTO entity, int instructorId);
+    //    Task<Response<CourseDTO>> UpdateCourseAsync(int id, CourseDTO entity);
+    //    Task<Response<bool>> DeleteCourseAsync(int id);
 
-    }
-    public class CourseService :ICourseService 
+    //}
+    public class CourseService  
     {
-        private readonly IRepository<Course> _courseRepository;
-        private readonly IRepository<Instructor> _instructorRepository;
+        private readonly CourseRepository _courseRepository;
+        private readonly InstructorRepository _instructorRepository;
 
 
         //dependacy Injection
-        public CourseService(
-                 IRepository<Course> courseRepository,IRepository<Instructor> instructorRepository)
+        public CourseService(CourseRepository courseRepository, InstructorRepository instructorRepository)
         {
             _courseRepository = courseRepository;
             _instructorRepository = instructorRepository;

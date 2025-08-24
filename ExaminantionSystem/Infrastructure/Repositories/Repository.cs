@@ -21,16 +21,14 @@ namespace ExaminantionSystem.Infrastructure.Repositories
 
         }
 
-        public IQueryable<TEntity> GetAll(bool includeDeleted = false , bool trackChanges = false)
+        public IQueryable<TEntity> GetAll()
         {
-            var query = includeDeleted? _dbSet: _dbSet.Where(e => !e.IsDeleted);
-
-            return trackChanges ? query.AsTracking() : query.AsNoTracking();
+            return _dbSet.Where(e => !e.IsDeleted);
         }
 
-        public async Task<TEntity?> GetByIdAsync(int id , bool includeDeleted = false , bool trackChanges = false)
+        public async Task<TEntity?> GetByIdAsync(int id , bool trackChanges = false)
         {
-            var query = includeDeleted? _dbSet : _dbSet.Where(e => !e.IsDeleted);
+            var query = _dbSet.Where(e => !e.IsDeleted);
 
             query = query.Where(e => e.Id == id);
             return trackChanges ? await query.AsTracking().FirstOrDefaultAsync() :await  query.AsNoTracking().FirstOrDefaultAsync();
@@ -55,22 +53,16 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             await UpdateAsync(entity);
         }
 
-        public IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> expression, bool includeDeleted = false, bool trackChanges = false)
+        public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> expression)
         {
-            var query =  _dbSet.Where(expression);
-
-            if (!includeDeleted && typeof(AuditEntity).IsAssignableFrom(typeof(TEntity)))
-            {
-                query = query.Where(e => !e.IsDeleted);
-            }
-
-            return trackChanges ?  query.AsTracking():  query.AsNoTracking();
+            var query =  GetAll();
+            return query.Where(expression); ;
         }
 
-        public IQueryable<TEntity> AsTracking(IQueryable<TEntity> query)
-        {
-            return query.AsTracking();
-        }
+        //public IQueryable<TEntity> AsTracking(IQueryable<TEntity> query)
+        //{
+        //    return query.AsTracking();
+        //}
 
         //public IQueryable<TEntity> AsNoTracking(IQueryable<TEntity> query)
         //{
@@ -81,6 +73,18 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             await _dbSet.AddRangeAsync(entities);
         }
 
+        public async Task<int> UpdateAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
+        {
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            if (setPropertyCalls == null)
+                throw new ArgumentNullException(nameof(setPropertyCalls));
+
+            return await _dbSet
+                .Where(predicate)
+                .ExecuteUpdateAsync(setPropertyCalls);
+        }
         public async Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate,Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
         {
             if (predicate == null)
@@ -93,7 +97,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
         }
 
         // Bulk delete by entities using ExecuteUpdate (Highly efficient)
-        public async Task DeteteRangeAsync(IEnumerable<TEntity> entities)
+        public async Task DeleteRangeAsync(IEnumerable<TEntity> entities)
         {
             if (!entities.Any()) return;
 
@@ -101,7 +105,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             await DeleteRangByIds(ids);
         }
 
-        public async Task DeleteRangByIds(IEnumerable<int> ids)
+        private async Task DeleteRangByIds(IEnumerable<int> ids)
         {
             if (!ids.Any()) return;
 
@@ -117,14 +121,9 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             await _executionContext.SaveChangesAsync();
         }
 
-        public Task UpdateRangeAsync(IEnumerable<TEntity> entities)
+        public async  Task<int> UpdateAsync(int id, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task DeleteRangeAsync(IEnumerable<TEntity> entities)
-        {
-            throw new NotImplementedException();
+            return await UpdateAsync(e => e.Id == id, setPropertyCalls);
         }
     }
 }
