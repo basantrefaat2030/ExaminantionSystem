@@ -15,7 +15,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
     public class ExamRepository : Repository<Exam> 
     {
         private readonly ExaminationContext _context;
-        public ExamRepository(ExaminationContext context)  : base(context) { _context = context}
+        public ExamRepository(ExaminationContext context)  : base(context) { _context = context; }
 
         public async Task<bool> ExamTitleExistsAsync(string title, int courseId)
         {
@@ -47,7 +47,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .Where(e => e.CourseId == courseId && !e.IsDeleted);
 
             if (examType.HasValue)
-                query = query.Where(e => e.Type == examType.Value);
+                query = query.Where(e => e.ExamType == examType.Value);
 
             return await query.ToListAsync();
         }
@@ -56,7 +56,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
         {
             return await _context.Exams
                 .AnyAsync(e => e.CourseId == courseId &&
-                             e.Type == ExamType.Final &&
+                             e.ExamType == ExamType.Final &&
                              !e.IsDeleted);
         }
     }
