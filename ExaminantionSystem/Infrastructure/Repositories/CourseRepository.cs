@@ -21,12 +21,34 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             _context = context;
         }
 
+
+        public async Task<bool> CourseTitleExistsAsync(string title, int? instructorId)
+        {
+            var query = _context.Courses
+                .Where(c => c.Title.ToLower() == title.ToLower()
+                         && c.InstructorId == instructorId
+                         && !c.IsDeleted
+                         && c.IsActive);
+
+            return await query.AnyAsync();
+        }
+
         public async Task<bool> CourseHasActiveEnrollmentsAsync(int courseId)
         {
             return await _context.StudentCourses
                 .AnyAsync(sc => sc.CourseId == courseId
                              && sc.Status == RequestStatus.Approved
-                             && !sc.IsDeleted);
+                             && !sc.IsDeleted
+                             && sc.IsActive);
+        }
+
+        public async Task<bool> IsInstructorCourseOwnerAsync(int courseId, int instructorId)
+        {
+            return await _context.Courses
+                .AnyAsync(c => c.Id == courseId
+                            && c.InstructorId == instructorId
+                            && !c.IsDeleted
+                            && c.IsActive);
         }
 
         public async Task<bool> CourseHasExamsAsync(int courseId)
@@ -43,18 +65,10 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                             && !c.IsDeleted);
         }
 
-        public async Task<bool> IsInstructorCourseOwnerAsync(int courseId, int instructorId)
-        {
-            return await _context.Courses
-                .AnyAsync(c => c.Id == courseId
-                            && c.InstructorId == instructorId
-                            && !c.IsDeleted);
-        }
-
         public async Task<bool> CourseExistsAsync(int courseId)
         {
             return await _context.Courses
-                .AnyAsync(c => c.Id == courseId && !c.IsDeleted);
+                .AnyAsync(c => c.Id == courseId && !c.IsDeleted && c.IsActive);
         }
 
 

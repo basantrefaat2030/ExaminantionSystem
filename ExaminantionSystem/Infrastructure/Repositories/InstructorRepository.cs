@@ -25,7 +25,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
         public async Task<int> GetInstructorCourseCountAsync(int instructorId)
         {
             return await _context.Courses
-                .CountAsync(c => c.InstructorId == instructorId && !c.IsDeleted);
+                .CountAsync(c => c.InstructorId == instructorId && !c.IsDeleted && c.IsActive);
         }
 
         public async Task<int> GetInstructorActiveCourseCountAsync(int instructorId)

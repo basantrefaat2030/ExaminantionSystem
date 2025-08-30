@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ExaminantionSystem.Entities.Dtos.Exam
 {
-    public class ExamDTO
+    public class ExamDto
     {
         public int Id { get; set; }
 

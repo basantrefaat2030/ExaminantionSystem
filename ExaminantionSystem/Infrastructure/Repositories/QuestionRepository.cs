@@ -36,21 +36,6 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<Question>> GetQuestionsForExamAsync(int instructorId, int count, QuestionLevel? level = null)
-        {
-            //predicate
-            var query = _context.Questions
-                .Where(q => q.InstructorId == instructorId && !q.IsDeleted);
-
-            if (level.HasValue)
-                query = query.Where(q => q.QuestionLevel == level.Value);
-
-            return await query
-                .Include(q => q.Choices.Where(c => !c.IsDeleted))
-                .OrderBy(q => q.Text) // Random order for variety
-                .Take(count)
-                .ToListAsync();
-        }
 
     }
 }

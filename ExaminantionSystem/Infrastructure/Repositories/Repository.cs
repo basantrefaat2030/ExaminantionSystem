@@ -13,8 +13,8 @@ namespace ExaminantionSystem.Infrastructure.Repositories
     public class Repository<TEntity> : IRepository<TEntity> where TEntity : BaseEntity
     {
         private ExaminationContext _executionContext;
-        private DbSet <TEntity> _dbSet;
-        public Repository(ExaminationContext executionContex) 
+        private DbSet<TEntity> _dbSet;
+        public Repository(ExaminationContext executionContex)
         {
             _executionContext = executionContex;
             _dbSet = executionContex.Set<TEntity>();
@@ -26,54 +26,41 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             return _dbSet.Where(e => !e.IsDeleted);
         }
 
-        public async Task<TEntity?> GetByIdAsync(int id , bool trackChanges = false)
+        public async Task<TEntity?> GetByIdAsync(int id, bool trackChanges = false)
         {
             var query = _dbSet.Where(e => !e.IsDeleted);
 
             query = query.Where(e => e.Id == id);
-            return trackChanges ? await query.AsTracking().FirstOrDefaultAsync() :await  query.AsNoTracking().FirstOrDefaultAsync();
+            return trackChanges ? await query.AsTracking().FirstOrDefaultAsync() : await query.AsNoTracking().FirstOrDefaultAsync();
         }
 
         public async Task AddAsync(TEntity entity)
         {
             await _dbSet.AddAsync(entity);
-            
-        }
 
-        public async Task UpdateAsync(TEntity entity)
-        {
-             _dbSet.Entry(entity).State = EntityState.Modified;
         }
 
         public async Task DeleteAsync(TEntity entity)
         {
-            // Soft delete
-            entity.IsDeleted = true;
-            entity.DeletedAt = DateTime.UtcNow;
-            await UpdateAsync(entity);
+            await _dbSet.Where(e => e.Id.Equals(entity.Id))
+             .ExecuteUpdateAsync(setters => setters
+             .SetProperty(e => e.IsDeleted, true)
+             .SetProperty(e => e.DeletedAt, DateTime.UtcNow));
         }
 
         public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> expression)
         {
-            var query =  GetAll();
+            var query = GetAll();
             return query.Where(expression); ;
         }
 
-        //public IQueryable<TEntity> AsTracking(IQueryable<TEntity> query)
-        //{
-        //    return query.AsTracking();
-        //}
-
-        //public IQueryable<TEntity> AsNoTracking(IQueryable<TEntity> query)
-        //{
-        //    return query.AsNoTracking();
-        //}
         public async Task AddRangeAsync(IEnumerable<TEntity> entities)
         {
             await _dbSet.AddRangeAsync(entities);
         }
 
-        public async Task<int> UpdateAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
+
+        public async Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
         {
             if (predicate == null)
                 throw new ArgumentNullException(nameof(predicate));
@@ -81,19 +68,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             if (setPropertyCalls == null)
                 throw new ArgumentNullException(nameof(setPropertyCalls));
 
-            return await _dbSet
-                .Where(predicate)
-                .ExecuteUpdateAsync(setPropertyCalls);
-        }
-        public async Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate,Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
-        {
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            if (setPropertyCalls == null)
-                throw new ArgumentNullException(nameof(setPropertyCalls));
-
-             await _dbSet.Where(predicate).ExecuteUpdateAsync(setPropertyCalls);
+            await _dbSet.Where(predicate).ExecuteUpdateAsync(setPropertyCalls);
         }
 
         // Bulk delete by entities using ExecuteUpdate (Highly efficient)
@@ -121,9 +96,45 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             await _executionContext.SaveChangesAsync();
         }
 
-        public async  Task<int> UpdateAsync(int id, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
+
+        public async Task<int> UpdateAsync(TEntity entity)
         {
-            return await UpdateAsync(e => e.Id == id, setPropertyCalls);
+            var idProperty = typeof(TEntity).GetProperty("Id");
+            var entityId = idProperty?.GetValue(entity);
+
+            if (entityId == null)
+                return 0;
+
+            return await _dbSet
+                .Where(e => EF.Property<object>(e, "Id").Equals(entityId))
+                .ExecuteUpdateAsync(setters =>
+                {
+                    var properties = typeof(TEntity).GetProperties()
+                        .Where(p => p.Name != "Id" && p.CanRead && p.CanWrite);
+
+                    var currentSetters = setters;
+
+                    foreach (var property in properties)
+                    {
+                        var value = property.GetValue(entity);
+                        currentSetters = currentSetters.SetProperty(
+                            e => EF.Property<object>(e, property.Name),
+                            value
+                        );
+                    }
+
+                    // Update timestamp if exists
+                    var updatedAtProperty = typeof(TEntity).GetProperty("UpdatedAt");
+                    if (updatedAtProperty != null)
+                    {
+                        currentSetters = currentSetters.SetProperty(
+                            e => EF.Property<object>(e, "UpdatedAt"),
+                            DateTime.UtcNow
+                        );
+                    }
+
+                    return currentSetters;
+                });
         }
     }
 }

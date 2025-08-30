@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ExaminantionSystem.Entities.Dtos.Courcse
 {
-    public class StudentCourceDTO
+    public class StudentCourceDto
     {
         public int Id { get; set; }
 

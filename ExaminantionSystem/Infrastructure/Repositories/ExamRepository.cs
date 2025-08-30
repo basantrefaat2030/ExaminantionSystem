@@ -21,8 +21,9 @@ namespace ExaminantionSystem.Infrastructure.Repositories
         {
             var query = _context.Exams
                 .Where(e => e.Title.ToLower() == title.ToLower() &&
-                          e.CourseId == courseId &&
-                          !e.IsDeleted);
+                          e.CourseId == courseId 
+                          &&!e.IsDeleted
+                          && e.IsActive);
 
             return await query.AnyAsync();
         }
@@ -36,15 +37,15 @@ namespace ExaminantionSystem.Infrastructure.Repositories
         public async Task<Exam> GetExamWithResultsAsync(int examId)
         {
             return await _context.Exams
-                .Include(e => e.ExamResults.Where(er => !er.IsDeleted))
+                .Include(e => e.ExamResults.Where(er => !er.IsDeleted && er.IsActive))
                     .ThenInclude(er => er.Student)
-                .FirstOrDefaultAsync(e => e.Id == examId && !e.IsDeleted);
+                .FirstOrDefaultAsync(e => e.Id == examId && !e.IsDeleted && e.IsActive);
         }
 
         public async Task<List<Exam>> GetCourseExamsAsync(int courseId, ExamType? examType = null)
         {
             var query = _context.Exams
-                .Where(e => e.CourseId == courseId && !e.IsDeleted);
+                .Where(e => e.CourseId == courseId && !e.IsDeleted && e.IsActive);
 
             if (examType.HasValue)
                 query = query.Where(e => e.ExamType == examType.Value);
@@ -57,7 +58,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             return await _context.Exams
                 .AnyAsync(e => e.CourseId == courseId &&
                              e.ExamType == ExamType.Final &&
-                             !e.IsDeleted);
+                             !e.IsDeleted && e.IsActive);
         }
     }
 }

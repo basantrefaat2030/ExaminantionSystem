@@ -3,7 +3,7 @@
     public class Response<T>  
     {
         // Success constructors
-        public static Response<T> Success(T data) => new() { Data = data, Succeeded = true };
+        public static Response<T> Success(T data) => new() { Data = data, Succeeded = true  , Message = string.Empty};
 
         // Error constructors
         public static Response<T> Fail(ErrorType type, params ErrorDetail[] errors)
@@ -11,7 +11,6 @@
 
         public T Data { get; set; }
         public bool Succeeded { get; set; }
-        //public string[] Errors { get; set; }
         public ErrorResponse Error { get; set; }
         public string Message { get; set; }
     }

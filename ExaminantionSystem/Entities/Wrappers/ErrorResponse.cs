@@ -24,16 +24,15 @@
         public string Title { get; set; } // Short error title
         public string Detail { get; set; } // Detailed explanation
         public string Source { get; set; } // Field/parameter causing error
-        public Dictionary<string, object> Meta { get; set; } // Additional context
+        //public Dictionary<string, object> Meta { get; set; } // Additional context
 
-        public ErrorDetail(string code, string title, string detail = null,
-                          string source = null, Dictionary<string, object> meta = null)
+        public ErrorDetail(string code , string title, string detail = null,
+                          string source = null)
         {
             Code = code;
             Title = title;
             Detail = detail;
             Source = source;
-            Meta = meta ?? new Dictionary<string, object>();
         }
 
     }

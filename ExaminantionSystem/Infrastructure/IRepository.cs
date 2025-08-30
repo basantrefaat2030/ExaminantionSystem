@@ -17,7 +17,7 @@ namespace ExaminantionSystem.Infrastructure
         Task<int> UpdateAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls);
 
         Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls);
-        Task DeleteAsync(TEntity entity);
+        Task DeleteAsync(int id);
         Task DeleteRangeAsync(IEnumerable<TEntity> entities);
 
         // Tracking control

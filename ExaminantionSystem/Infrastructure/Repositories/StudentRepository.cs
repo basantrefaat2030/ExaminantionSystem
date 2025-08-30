@@ -21,7 +21,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
         public async Task<bool> StudentEmailExistsAsync(string email)
         {
             var query = _context.Students
-                .Where(s => s.EmailAddress.ToLower() == email.ToLower() && !s.IsDeleted);
+                .Where(s => s.EmailAddress.ToLower() == email.ToLower() && !s.IsDeleted && s.IsActive);
 
 
             return await query.AnyAsync();
@@ -33,21 +33,13 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .AnyAsync(sc => sc.StudentId == studentId &&
                               sc.CourseId == courseId &&
                               sc.Status == RequestStatus.Approved &&
-                              !sc.IsDeleted);
+                              !sc.IsDeleted && sc.IsActive);
         }
 
         public async Task<int> GetStudentEnrollmentCountAsync(int studentId)
         {
             return await _context.StudentCourses
-                .CountAsync(sc => sc.StudentId == studentId && !sc.IsDeleted);
-        }
-
-        public async Task<Student> GetStudentWithEnrollmentsAsync(int studentId)
-        {
-            return await _context.Students
-                .Include(s => s.StudentCourses.Where(sc => !sc.IsDeleted))
-                    .ThenInclude(sc => sc.Course)
-                .FirstOrDefaultAsync(s => s.Id == studentId && !s.IsDeleted);
+                .CountAsync(sc => sc.StudentId == studentId && !sc.IsDeleted && sc.IsActive);
         }
 
 
@@ -57,7 +49,8 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .AnyAsync(er => er.StudentId == studentId &&
                               er.Exam.CourseId == courseId &&
                               er.Exam.ExamType == ExamType.Final &&
-                              !er.IsDeleted);
+                              !er.IsDeleted && 
+                              er.IsActive);
         }
     }
 }

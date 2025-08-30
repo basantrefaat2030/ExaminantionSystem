@@ -2,7 +2,7 @@
 
 namespace ExaminantionSystem.Entities.Dtos.Choice
 {
-    public class CreateChoiceDTO
+    public class CreateChoiceDto
     {
        
             [Required(ErrorMessage = "Choice text is required")]

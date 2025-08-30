@@ -2,7 +2,7 @@
 
 namespace ExaminantionSystem.Entities.Dtos.Exam
 {
-    public class SubmitExamDTO
+    public class SubmitExamDto
     {
         [Required(ErrorMessage = "Exam ID is required")]
         public int ExamId { get; set; }

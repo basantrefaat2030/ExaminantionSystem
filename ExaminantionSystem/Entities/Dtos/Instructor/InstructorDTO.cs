@@ -1,6 +1,6 @@
 ﻿namespace ExaminantionSystem.Entities.Dtos.Instructor
 {
-    public class InstructorDTO
+    public class InstructorDto
     {
         public int Id { get; set; }
         public string FullName { get; set; }

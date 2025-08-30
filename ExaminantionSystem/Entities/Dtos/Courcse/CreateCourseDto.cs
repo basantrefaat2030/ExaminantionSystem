@@ -1,19 +1,18 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ExaminantionSystem.Entities.Dtos.Courcse
 {
-    public class CourseDto
+    public class CreateCourseDto
     {
-        public int Id { get; set; }
         [Required(ErrorMessage = "Course title is required")]
         [StringLength(100, MinimumLength = 3, ErrorMessage = "Title must be between 3-100 characters")]
         public string Title { get; set; }
+
         [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
-        public string? Description { get; set; }
+        public string Description { get; set; }
 
         [Range(1, 300, ErrorMessage = "Hours must be between 1-300")]
-        [Required(ErrorMessage ="Enter Course Hours")]
+        [Required(ErrorMessage = "Enter Course Hours")]
         public int Hours { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Budget must be a positive value")]
@@ -21,6 +20,5 @@ namespace ExaminantionSystem.Entities.Dtos.Courcse
         public double Budget { get; set; }
 
         public int InstructorId { get; set; }
-
     }
 }
