@@ -9,7 +9,8 @@ namespace ExaminantionSystem.Entities.Dtos.Choice
             [StringLength(500, ErrorMessage = "Choice text cannot exceed 500 characters")]
             public string Text { get; set; }
 
-            public bool IsCorrect { get; set; }
+             [Required(ErrorMessage = "Correct flag is required")]
+              public bool IsCorrect { get; set; }
         
     }
 }

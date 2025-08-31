@@ -24,7 +24,6 @@ namespace ExaminantionSystem.Entities.Models
         public int TotalQuestions { get; set; }
         public bool IsAutomatic { get; set; } = false; // auto generate exam
         // Navigation
-
         public virtual Course Course { get; set; }
         public virtual  ICollection<ExamQuestion> ExamQuestions { get; set; }
         public virtual ICollection<ExamResult> ExamResults { get; set; }

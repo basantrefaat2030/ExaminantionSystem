@@ -60,5 +60,10 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                              e.ExamType == ExamType.Final &&
                              !e.IsDeleted && e.IsActive);
         }
+
+        public async Task<int> GetTotalExam(int courseId)
+        {
+            return await _context.Exams.CountAsync(e => e.CourseId == courseId && !e.IsDeleted && e.IsActive);
+        }
     }
 }

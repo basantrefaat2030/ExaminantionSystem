@@ -1,9 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace ExaminantionSystem.Entities.Dtos.Courcse
+﻿namespace ExaminantionSystem.Entities.Dtos.Courcse
 {
-    public class CourseDto
+    public class CourseInformationDto
     {
         public int Id { get; set; }
         public string Title { get; set; }
@@ -12,5 +9,7 @@ namespace ExaminantionSystem.Entities.Dtos.Courcse
         public double Budget { get; set; }
         public int InstructorId { get; set; }
 
+        public string InstructorName { get; set; }
+        public bool IsActive { get; set; }
     }
 }

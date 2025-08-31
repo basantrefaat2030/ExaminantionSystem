@@ -21,7 +21,11 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             _context = context;
         }
 
-
+        public async Task<int> GetTotalEnrollments(int courseId , bool IsActive = false)
+        {
+            return await _context.StudentCourses
+                        .CountAsync(sc => sc.Id == courseId && !sc.IsDeleted && sc.IsActive == IsActive && sc.Status == RequestStatus.Approved);
+        }
         public async Task<bool> CourseTitleExistsAsync(string title, int? instructorId)
         {
             var query = _context.Courses
@@ -70,6 +74,8 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             return await _context.Courses
                 .AnyAsync(c => c.Id == courseId && !c.IsDeleted && c.IsActive);
         }
+
+      
 
 
     }

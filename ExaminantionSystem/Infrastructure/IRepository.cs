@@ -9,12 +9,13 @@ namespace ExaminantionSystem.Infrastructure
 
         IQueryable<TEntity> GetAll();
         IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> expression);
-        Task<TEntity?> GetByIdAsync(int id , bool trackChanges = false);
+        Task<TEntity> GetByIdAsync(int id);
+        Task<TEntity> GetByIdTrackingAsync(int id);
+
         Task AddAsync(TEntity entity);
 
         Task AddRangeAsync(IEnumerable<TEntity> entities);
-        Task<int> UpdateAsync(int id, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls );
-        Task<int> UpdateAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls);
+        Task<int> UpdateAsync(TEntity);
 
         Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls);
         Task DeleteAsync(int id);

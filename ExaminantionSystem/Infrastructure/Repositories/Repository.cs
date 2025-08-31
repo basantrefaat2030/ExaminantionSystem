@@ -2,6 +2,7 @@
 using ExaminantionSystem.Entities.Wrappers;
 using ExaminantionSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using System.Linq.Expressions;
@@ -26,23 +27,28 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             return _dbSet.Where(e => !e.IsDeleted);
         }
 
-        public async Task<TEntity?> GetByIdAsync(int id, bool trackChanges = false)
+        public async Task<TEntity> GetByIdAsync(int id)
         {
-            var query = _dbSet.Where(e => !e.IsDeleted);
+            var query = await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted );
+            return query;
+        }
 
-            query = query.Where(e => e.Id == id);
-            return trackChanges ? await query.AsTracking().FirstOrDefaultAsync() : await query.AsNoTracking().FirstOrDefaultAsync();
+        public async Task<TEntity> GetByIdTrackingAsync(int id)
+        {
+            var res = await _dbSet.AsTracking().FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
+            return res;
         }
 
         public async Task AddAsync(TEntity entity)
         {
+            entity.CreatedAt = DateTime.UtcNow;
             await _dbSet.AddAsync(entity);
 
         }
 
-        public async Task DeleteAsync(TEntity entity)
+        public async Task DeleteAsync(int id)
         {
-            await _dbSet.Where(e => e.Id.Equals(entity.Id))
+            await _dbSet.Where(e => e.Id == id && !e.IsDeleted)
              .ExecuteUpdateAsync(setters => setters
              .SetProperty(e => e.IsDeleted, true)
              .SetProperty(e => e.DeletedAt, DateTime.UtcNow));
@@ -96,45 +102,124 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             await _executionContext.SaveChangesAsync();
         }
 
+        //public void UpdateInclude(TEntity entity, params string[] modifiedParams)
+        //{
+        //    if (!_dbSet.Any(x => x.Id == entity.Id))
+        //    { return; }
+
+        //    var local = _dbSet.Local.FirstOrDefault(x => x.Id == entity.Id);
+        //    EntityEntry entityEntry;
+
+        //    if (local == null)
+        //    {
+        //        entityEntry = _executionContext.Entry(entity);
+        //    }
+        //    else
+        //    {
+        //        entityEntry = _executionContext.ChangeTracker.Entries<TEntity>().FirstOrDefault(x => x.Entity.Id == entity.Id);
+        //    }
+
+        //    foreach (var prop in entityEntry.Properties)
+        //    {
+        //        if (modifiedParams.Contains(prop.Metadata.Name))
+        //        {
+        //            prop.CurrentValue = entity.GetType().GetProperty(prop.Metadata.Name).GetValue(entity);
+        //            prop.IsModified = true;
+        //        }
+        //    }
+        //   // _executionContext.SaveChanges();
+        //}
 
         public async Task<int> UpdateAsync(TEntity entity)
         {
             var idProperty = typeof(TEntity).GetProperty("Id");
             var entityId = idProperty?.GetValue(entity);
-
             if (entityId == null)
                 return 0;
 
+            // Parameter for the setters in the expression (equivalent to 'setters => ...')
+            var setParameter = Expression.Parameter(typeof(SetPropertyCalls<TEntity>), "setters");
+
+            // Start with the initial setters expression
+            var currentExpression = (Expression)setParameter;
+
+            // Get the open generic SetProperty method
+            var openSetPropMethod = typeof(SetPropertyCalls<TEntity>).GetMethods()
+                .First(m => m.Name == "SetProperty" && m.IsGenericMethod);
+
+            // Get all updatable properties (excluding Id)
+            var properties = typeof(TEntity).GetProperties()
+                .Where(p => p.Name != "Id" && p.CanRead && p.CanWrite);
+
+            foreach (var property in properties)
+            {
+                var propName = property.Name;
+                var value = property.GetValue(entity);
+
+                // Build the property selector: e => EF.Property<object>(e, propName)
+                var eParam = Expression.Parameter(typeof(TEntity), "e");
+                var efPropertyCall = Expression.Call(
+                    typeof(EF),
+                    nameof(EF.Property),
+                    new[] { typeof(object) },
+                    eParam,
+                    Expression.Constant(propName)
+                );
+                var propertyLambda = Expression.Lambda<Func<TEntity, object>>(efPropertyCall, eParam);
+
+                // Close the generic method for object type
+                var closedMethod = openSetPropMethod.MakeGenericMethod(typeof(object));
+
+                // Chain the SetProperty call: current.SetProperty(propertyLambda, value)
+                currentExpression = Expression.Call(
+                    currentExpression,
+                    closedMethod,
+                    propertyLambda,
+                    Expression.Constant(value, typeof(object))
+                );
+            }
+
+            // Handle UpdatedAt if it exists
+            var updatedAtProperty = typeof(TEntity).GetProperty("UpdatedAt");
+            if (updatedAtProperty != null)
+            {
+                var propName = "UpdatedAt";
+                var value = DateTime.UtcNow;
+
+                // Build the property selector: e => EF.Property<object>(e, "UpdatedAt")
+                var eParam = Expression.Parameter(typeof(TEntity), "e");
+                var efPropertyCall = Expression.Call(
+                    typeof(EF),
+                    nameof(EF.Property),
+                    new[] { typeof(object) },
+                    eParam,
+                    Expression.Constant(propName)
+                );
+                var propertyLambda = Expression.Lambda<Func<TEntity, object>>(efPropertyCall, eParam);
+
+                // Close the generic method for object type
+                var closedMethod = openSetPropMethod.MakeGenericMethod(typeof(object));
+
+                // Chain the SetProperty call for UpdatedAt
+                currentExpression = Expression.Call(
+                    currentExpression,
+                    closedMethod,
+                    propertyLambda,
+                    Expression.Constant(value, typeof(object))
+                );
+            }
+
+            // Build the final lambda: setters => [chained SetProperty calls]
+            var lambda = Expression.Lambda<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>>(
+                currentExpression,
+                setParameter
+            );
+
+            // Execute the update using the built expression
             return await _dbSet
                 .Where(e => EF.Property<object>(e, "Id").Equals(entityId))
-                .ExecuteUpdateAsync(setters =>
-                {
-                    var properties = typeof(TEntity).GetProperties()
-                        .Where(p => p.Name != "Id" && p.CanRead && p.CanWrite);
-
-                    var currentSetters = setters;
-
-                    foreach (var property in properties)
-                    {
-                        var value = property.GetValue(entity);
-                        currentSetters = currentSetters.SetProperty(
-                            e => EF.Property<object>(e, property.Name),
-                            value
-                        );
-                    }
-
-                    // Update timestamp if exists
-                    var updatedAtProperty = typeof(TEntity).GetProperty("UpdatedAt");
-                    if (updatedAtProperty != null)
-                    {
-                        currentSetters = currentSetters.SetProperty(
-                            e => EF.Property<object>(e, "UpdatedAt"),
-                            DateTime.UtcNow
-                        );
-                    }
-
-                    return currentSetters;
-                });
+                .ExecuteUpdateAsync(lambda);
         }
+
     }
 }

@@ -10,10 +10,10 @@ namespace ExaminantionSystem.Entities
         public DateTime? DeletedAt { get; set; }
 
         [DataType(DataType.DateTime)]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; }
         public int? CreatedBy {  get; set; }
 
-        public int? UpdatedAt { get; set; }  
+        public DateTime? UpdatedAt { get; set; }  
 
         public bool IsActive { get; set; } = true;
 

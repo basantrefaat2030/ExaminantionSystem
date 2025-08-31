@@ -28,7 +28,8 @@
             PageNumber = pageNumber;
             PageSize = pageSize;
             TotalRecords = totalRecords;
-            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+            //(Math.Ceiling) This rounds up to the nearest integer.
+            TotalPages = (int)Math.Ceiling(totalRecords /(double)pageSize);
         }
     }
 
