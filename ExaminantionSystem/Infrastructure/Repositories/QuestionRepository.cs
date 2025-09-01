@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ExaminantionSystem.Infrastructure.Repositories
 {
-    public class QuestionRepository : Repository<Exam>
+    public class QuestionRepository : Repository<Question>
     {
         private readonly ExaminationContext _context;
 
@@ -15,21 +15,21 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<bool> QuestionTextExistsAsync(string text, int instructorId)
-        {
-            var query = _context.Questions
-                .Where(q => q.Text.ToLower() == text.ToLower() &&
-                          q.InstructorId == instructorId &&
-                          !q.IsDeleted && q.IsActive);
+        //public async Task<bool> QuestionTextExistsAsync(string text, int courseId)
+        //{
+        //    var query = _context.Questions
+        //        .Where(q => q.Content.ToLower() == text.ToLower() &&
+        //                  q.InstructorId == instructorId &&
+        //                  !q.IsDeleted && q.IsActive);
 
-            return await query.AnyAsync();
-        }
+        //    return await query.AnyAsync();
+        //}
 
 
-        public async Task<List<Question>> GetQuestionsByLevelAsync(int instructorId, QuestionLevel level)
+        public async Task<List<Question>> GetQuestionsByLevelAsync(int courseId, QuestionLevel level)
         {
             return await _context.Questions
-                .Where(q => q.InstructorId == instructorId &&
+                .Where(q => q.CourseId == courseId &&
                           q.QuestionLevel == level &&
                           !q.IsDeleted && q.IsActive)
                 .Include(q => q.Choices.Where(c => !c.IsDeleted))

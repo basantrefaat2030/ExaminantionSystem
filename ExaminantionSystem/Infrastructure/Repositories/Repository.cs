@@ -221,5 +221,18 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .ExecuteUpdateAsync(lambda);
         }
 
+        public async Task BegainTransactionAsync()
+        {
+            await _executionContext.Database.BeginTransactionAsync();
+        }
+        public async Task CommitTransactionAsync()
+        {
+            await _executionContext.Database.CommitTransactionAsync();
+        }
+        public async Task RollbackTransactionAsync()
+        {
+            await _executionContext.Database.RollbackTransactionAsync();
+        }
+
     }
 }

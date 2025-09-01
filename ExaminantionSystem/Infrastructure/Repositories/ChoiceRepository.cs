@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ExaminantionSystem.Infrastructure.Repositories
 {
-    public class ChoiceRepository : Repository<Exam>
+    public class ChoiceRepository : Repository<Choice>
     {
         private readonly ExaminationContext _context;
         public ChoiceRepository(ExaminationContext context) : base(context)

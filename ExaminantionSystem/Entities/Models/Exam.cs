@@ -21,7 +21,7 @@ namespace ExaminantionSystem.Entities.Models
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
-        public int TotalQuestions { get; set; }
+        public int NumberOfQuestion { get; set; }
         public bool IsAutomatic { get; set; } = false; // auto generate exam
         // Navigation
         public virtual Course Course { get; set; }

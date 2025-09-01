@@ -22,5 +22,6 @@ namespace ExaminantionSystem.Entities.Models
         public virtual Instructor Instructor { get; set; }
         public virtual ICollection<Exam> Exams { get; set; }
         public virtual ICollection<StudentCourse> Enrollments { get; set; }
+        public virtual ICollection<Question> Questions { get; set; }
     }
 }

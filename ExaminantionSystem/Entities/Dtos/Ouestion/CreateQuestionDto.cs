@@ -8,7 +8,7 @@ namespace ExaminantionSystem.Entities.Dtos.Ouestion
     {
         [Required(ErrorMessage = "Content is required")]
         [StringLength(1000, ErrorMessage = "Content cannot exceed 1000 characters")]
-        public string Text { get; set; }
+        public string Content { get; set; }
 
         [Required(ErrorMessage = "Question level is required")]
         public QuestionLevel Level { get; set; }
@@ -18,8 +18,11 @@ namespace ExaminantionSystem.Entities.Dtos.Ouestion
         public double Mark { get; set; }
 
         [Required(ErrorMessage = "At least one choice is required")]
-        [MinLength(4, ErrorMessage = "Question must have at least 4 choices")]
-        //[MaxLength(6, ErrorMessage = "Question cannot have more than 5 choices")]
+        [MinLength(2, ErrorMessage = "Question must have at least 2 choices")]
+        [MaxLength(4, ErrorMessage = "Question cannot have more than 4 choices")]
         public List<CreateChoiceDto> Choices { get; set; }
+
+        [Required]
+        public  int CourseId { get; set; }
     }
 }

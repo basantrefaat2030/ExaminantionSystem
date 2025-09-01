@@ -15,7 +15,7 @@ namespace ExaminantionSystem.Infrastructure
         Task AddAsync(TEntity entity);
 
         Task AddRangeAsync(IEnumerable<TEntity> entities);
-        Task<int> UpdateAsync(TEntity);
+        Task<int> UpdateAsync(TEntity entity);
 
         Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls);
         Task DeleteAsync(int id);
@@ -23,7 +23,11 @@ namespace ExaminantionSystem.Infrastructure
 
         // Tracking control
         //IQueryable<TEntity> AsTracking(IQueryable<TEntity> query);
+        //transaction
         Task SaveChangesAsync();
+        Task BegainTransaction();
+        Task CommitTransaction();
+        Task RollbackTransaction();
 
     }
 }
