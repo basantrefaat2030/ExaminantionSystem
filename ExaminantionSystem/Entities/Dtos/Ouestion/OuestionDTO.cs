@@ -7,6 +7,7 @@ namespace ExaminantionSystem.Entities.Dtos.Ouestion
         public class QuestionDto
         {
             public int Id { get; set; }
+            public int Content {  get; set; }
             public string QuestionContent { get; set; }
             public QuestionLevel Level { get; set; }
             public int InstructorId { get; set; }

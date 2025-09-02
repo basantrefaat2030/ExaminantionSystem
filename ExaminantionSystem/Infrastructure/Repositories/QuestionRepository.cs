@@ -24,7 +24,13 @@ namespace ExaminantionSystem.Infrastructure.Repositories
 
         //    return await query.AnyAsync();
         //}
+        public async Task<bool> IsQuestionInExamExist(int questionId)
+        {
+            return await _context.ExamQuestions.AnyAsync(a  => a.QuestionId == questionId 
+                                                            && !a.IsDeleted 
+                                                            && a.IsActive);
 
+        }
 
         public async Task<List<Question>> GetQuestionsByLevelAsync(int courseId, QuestionLevel level)
         {

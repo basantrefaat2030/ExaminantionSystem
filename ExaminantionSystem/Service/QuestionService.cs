@@ -17,21 +17,19 @@ namespace ExaminantionSystem.Service
 
         public QuestionService(QuestionRepository questionRepository,
             ChoiceRepository choiceRepository,
-            ExamRepository ExamRepository,
+            ExamRepository examRepository,
             CourseRepository courseRepository,
             InstructorRepository instructorRepository)
         {
             _questionRepository = questionRepository;
             _choiceRepository = choiceRepository;
-            _examRepository = _examRepository;
+            _examRepository = examRepository;
             _courseRepository = courseRepository;
             _instructorRepository = instructorRepository;
         }
 
         public async Task<Response<QuestionDto>> CreateQuestionWithChoicesAsync(CreateQuestionDto dto, int currentUserId)
         {
-            try
-            {
                 var course = await _courseRepository.GetByIdAsync(dto.CourseId);
 
                 if (course == null)
@@ -109,19 +107,13 @@ namespace ExaminantionSystem.Service
                     throw;
                 }
             }
-            catch (Exception ex)
-            {
-                return Response<QuestionDto>.Fail(ErrorType.Critical,
-                    new ErrorDetail("CREATE_QUESTION_ERROR", "Failed to create question with choices", ex.Message));
-            }
-        }
+        
 
         public async Task<Response<bool>> DeleteQuestionWithChoicesAsync(int questionId, int currentUserId)
         {
-            try
-            {
+            
                 var question = await _questionRepository.GetByIdAsync(questionId);
-                if (question == null || question.IsDeleted)
+                if (question == null)
                     return Response<bool>.Fail(ErrorType.NotFound,
                         new ErrorDetail("QUESTION_NOT_FOUND", "Question not found"));
 
@@ -130,9 +122,7 @@ namespace ExaminantionSystem.Service
                     return Response<bool>.Fail(ErrorType.Forbidden,
                         new ErrorDetail("ACCESS_DENIED", "You can only delete questions from your own courses"));
 
-                var isUsedInExams = await _examQuestionRepository
-                    .GetAll(eq => eq.QuestionId == questionId && !eq.IsDeleted)
-                    .AnyAsync();
+                var isUsedInExams = await _questionRepository.IsQuestionInExamExist(questionId);
 
                 if (isUsedInExams)
                     return Response<bool>.Fail(ErrorType.BusinessRule,
@@ -147,12 +137,7 @@ namespace ExaminantionSystem.Service
                     await _questionRepository.DeleteAsync(questionId);
 
                     // Soft delete all choices for this question
-                    await _choiceRepository.UpdateRangeAsync(
-                        c => c.QuestionId == questionId && !c.IsDeleted,
-                        s => s.SetProperty(c => c.IsDeleted, true)
-                              .SetProperty(c => c.DeletedAt, DateTime.UtcNow)
-                    );
-
+                    await _choiceRepository.DeleteRangeAsync(question.Choices);
                     await _questionRepository.SaveChangesAsync();
 
                     // Commit transaction using repository method
@@ -167,19 +152,15 @@ namespace ExaminantionSystem.Service
                     throw;
                 }
             }
-            catch (Exception ex)
-            {
-                return Response<bool>.Fail(ErrorType.Critical,
-                    new ErrorDetail("DELETE_QUESTION_ERROR", "Failed to delete question with choices", ex.Message));
-            }
-        }
+           
+        
 
-        public async Task<Response<QuestionDto>> UpdateQuestionWithChoicesAsync(int questionId, UpdateQuestionWithChoicesDto dto, int currentUserId)
+        public async Task<Response<QuestionDto>> UpdateQuestionWithChoicesAsync(int questionId, UpdateQuestionDto dto, int currentUserId)
         {
             try
             {
                 var question = await _questionRepository.GetByIdAsync(questionId);
-                if (question == null || question.IsDeleted)
+                if (question == null)
                     return Response<QuestionDto>.Fail(ErrorType.NotFound,
                         new ErrorDetail("QUESTION_NOT_FOUND", "Question not found"));
 
@@ -188,11 +169,9 @@ namespace ExaminantionSystem.Service
                     return Response<QuestionDto>.Fail(ErrorType.Forbidden,
                         new ErrorDetail("ACCESS_DENIED", "You can only update questions for your own courses"));
 
-                var isUsedInExams = await _examQuestionRepository
-                    .GetAll(eq => eq.QuestionId == questionId && !eq.IsDeleted)
-                    .AnyAsync();
+                var isUsedInActiveExams = await _examRepository.IsQuestionInExamActive(questionId);
 
-                if (isUsedInExams)
+                if (isUsedInActiveExams)
                     return Response<QuestionDto>.Fail(ErrorType.BusinessRule,
                         new ErrorDetail("QUESTION_IN_USE", "Cannot update question that is used in exams"));
 
@@ -208,10 +187,8 @@ namespace ExaminantionSystem.Service
                 {
                     // Update question
                     question.Content = dto.Content.Trim();
-                    question.Level = dto.Level;
-                    question.Points = dto.Points;
-                    question.UpdatedAt = DateTime.UtcNow;
-                    question.UpdatedBy = currentUserId.ToString();
+                    question.QuestionLevel = dto.Level;
+                    question.Mark = dto.Mark;
 
                     await _questionRepository.UpdateAsync(question);
 
@@ -225,10 +202,10 @@ namespace ExaminantionSystem.Service
                     // Create new choices
                     var choices = dto.Choices.Select(choiceDto => new Choice
                     {
-                        Content = choiceDto.Content.Trim(),
+                        Text = choiceDto.Text.Trim(),
                         IsCorrect = choiceDto.IsCorrect,
                         QuestionId = questionId,
-                        CreatedBy = currentUserId.ToString()
+                        CreatedBy = 2
                     }).ToList();
 
                     await _choiceRepository.AddRangeAsync(choices);
@@ -237,19 +214,14 @@ namespace ExaminantionSystem.Service
                     // Commit transaction using repository method
                     await _questionRepository.CommitTransactionAsync();
 
-                    // Manual mapping
-                    var instructor = await _userRepository.GetByIdAsync(course.InstructorId);
-                    var usageCount = await _examQuestionRepository
-                        .GetAll(eq => eq.QuestionId == questionId && !eq.IsDeleted)
-                        .CountAsync();
+                    var instructor = await _instructorRepository.GetByIdAsync(course.InstructorId);
 
                     var choiceDtos = choices.Select(c => new ChoiceDto
                     {
                         Id = c.Id,
-                        Content = c.Content,
+                        Text = c.Text,
                         IsCorrect = c.IsCorrect,
                         QuestionId = c.QuestionId,
-                        CreatedAt = c.CreatedAt
                     }).ToList();
 
                     var result = new QuestionDto
