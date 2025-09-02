@@ -34,13 +34,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .AnyAsync(er => er.ExamId == examId && !er.IsDeleted);
         }
 
-        public async Task<Exam> GetExamWithResultsAsync(int examId)
-        {
-            return await _context.Exams
-                .Include(e => e.ExamResults.Where(er => !er.IsDeleted && er.IsActive))
-                    .ThenInclude(er => er.Student)
-                .FirstOrDefaultAsync(e => e.Id == examId && !e.IsDeleted && e.IsActive);
-        }
+
 
         public async Task<List<Exam>> GetCourseExamsAsync(int courseId, ExamType? examType = null)
         {
