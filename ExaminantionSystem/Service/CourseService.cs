@@ -1,5 +1,7 @@
-﻿using ExaminantionSystem.Entities.Dtos;
+﻿using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Courcse;
+using ExaminantionSystem.Entities.Dtos.Course;
+using ExaminantionSystem.Entities.Dtos.Ouestion;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Wrappers;
 using ExaminantionSystem.Infrastructure;
@@ -22,42 +24,45 @@ namespace ExaminantionSystem.Service
         private readonly CourseRepository _courseRepository;
         private readonly InstructorRepository _instructorRepository;
         private readonly StudentRepository _studentRepository;
-        public readonly ExamRepository _examRepository;
-
+        private readonly ExamRepository _examRepository;
+        private readonly QuestionRepository _questionRepository;
+        private readonly ChoiceRepository _choiceRepository;
 
         public CourseService(
           CourseRepository courseRepository,
           InstructorRepository instructorRepository,
-          ExamRepository examRepository)
+          ExamRepository examRepository,
+          QuestionRepository questionRepository,
+          ChoiceRepository choiceRepository)
         {
             _courseRepository = courseRepository;
             _instructorRepository = instructorRepository;
             _examRepository = examRepository;
+            _questionRepository = questionRepository;
+            _choiceRepository = choiceRepository;
         }
 
-        public async Task<Response<CourseDto>> CreateCourseAsync(CreateCourseDto dto)
+        #region CourseCRUD
+        public async Task<Response<CourseDto>> CreateCourseAsync(CreateCourseDto dto , int currentUserId)
         {
-            try
-            {
+
                 // Validate instructor exists
                 var instructor = await _instructorRepository.GetByIdAsync(dto.InstructorId);
                 if (instructor == null)
-                {
                     return Response<CourseDto>.Fail(
                         ErrorType.NotFound,
                         new ErrorDetail("INSTRUCTOR_NOT_FOUND", "Instructor not found", $"Instructor with ID {dto.InstructorId} not found", "instructorId")
                     );
-                }
+                
 
                 // Check for duplicate course title
                 var titleExists = await _courseRepository.CourseTitleExistsAsync(dto.Title, dto.InstructorId);
                 if (titleExists)
-                {
                     return Response<CourseDto>.Fail(
                         ErrorType.Conflict,
                         new ErrorDetail("COURSE_TITLE_EXISTS", "Course title exists", $"Course with title '{dto.Title}' already exists", "title")
                     );
-                }
+                
 
                 // Create course logic...
                 var course = new Course
@@ -67,7 +72,7 @@ namespace ExaminantionSystem.Service
                     InstructorId = dto.InstructorId,
                     Hours = dto.Hours,
                     Budget = dto.Budget,
-                    CreatedBy = 1,
+                    CreatedBy = currentUserId,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -85,27 +90,22 @@ namespace ExaminantionSystem.Service
                 };
 
                 return Response<CourseDto>.Success(courseDto);
-            }
-            catch (Exception ex)
-            {
-                return Response<CourseDto>.Fail(
-                    ErrorType.Critical,
-                    new ErrorDetail("COURSE_CREATION_ERROR", "Failed to create course", ex.Message)
-                );
-            }
+            
 
         }
 
-        public async Task<Response<bool>> DeleteCourseAsync(int id)
+        public async Task<Response<bool>> DeleteCourseAsync(int courseId , int currentUserId)
         {
-            var IsExist = await _courseRepository.CourseExistsAsync(id);
-            if (!IsExist)
-
+            var course = await _courseRepository.GetByIdAsync(courseId);
+            if (course == null)
+            
                 return Response<bool>.Fail(
-                            ErrorType.NotFound,
-                            new ErrorDetail("COURSE_NOT_FOUND", "course not found", $"Course with ID {id} not found", "CourseId"));
+                    ErrorType.NotFound,
+                    new ErrorDetail("COURSE_NOT_FOUND", "Course not found", $"Course with ID {courseId} not found"));
+            
+            
 
-            var hasEnrollments = await _courseRepository.CourseHasActiveEnrollmentsAsync(id);
+            var hasEnrollments = await _courseRepository.CourseHasActiveEnrollmentsAsync(courseId);
             if (hasEnrollments)
 
                 return Response<bool>.Fail(ErrorType.BusinessRule,
@@ -113,29 +113,30 @@ namespace ExaminantionSystem.Service
                 );
 
 
-            var hasExams = await _courseRepository.CourseHasExamsAsync(id);
+            var hasExams = await _courseRepository.CourseHasExamsAsync(courseId);
             if (hasExams)
 
                 return Response<bool>.Fail(ErrorType.BusinessRule,
                     new ErrorDetail("COURSE_HAS_EXAMS", "Course has exams", $"Cannot delete course because it has associated exams")
                 );
 
-            await _courseRepository.DeleteAsync(id);
+            await _courseRepository.DeleteAsync(courseId);
             await _courseRepository.SaveChangesAsync();
 
             return Response<bool>.Success(true);
 
         }
-        public async Task<Response<CourseDto>> UpdateCourseAsync(UpdateCourseDto dto , int courseId)
+
+        public async Task<Response<CourseDto>> UpdateCourseAsync(UpdateCourseDto dto, int currentUserId)
         {
             try
             {
-                var course = await _courseRepository.GetByIdTrackingAsync(courseId);
+                var course = await _courseRepository.GetByIdTrackingAsync(dto.courseId);
                 if (course == null)
                 {
                     return Response<CourseDto>.Fail(
                         ErrorType.NotFound,
-                        new ErrorDetail("COURSE_NOT_FOUND", "Course not found", $"Course with ID {courseId} not found")
+                        new ErrorDetail("COURSE_NOT_FOUND", "Course not found", $"Course with ID {dto.courseId} not found")
                     );
                 }
 
@@ -192,7 +193,6 @@ namespace ExaminantionSystem.Service
             }
         }
 
-
         public async Task<Response<PagedResponse<CourseInformationDto>>> GetPaginatedCoursesAsync(int? instructorId, int pageNumber, int pageSize)
         {
 
@@ -241,8 +241,6 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<CourseDetailsDto>> GetCourseDetailsAsync(int courseId)
         {
-            try
-            {
                 var course = await _courseRepository.GetByIdAsync(courseId);
                 if (course == null)
                 {
@@ -253,8 +251,7 @@ namespace ExaminantionSystem.Service
                 }
 
                 // Get enrollment statistics
-                var totalEnrollments = await _courseRepository.GetTotalEnrollments(courseId);
-                var activeEnrollments = await _courseRepository.GetTotalEnrollments(courseId);
+                var totalEnrollments = await _courseRepository.GetTotalEnrollmentsAsync(courseId);
 
                 // Get exam statistics
                 var totalExams = await _examRepository.GetTotalExam(courseId);
@@ -270,21 +267,69 @@ namespace ExaminantionSystem.Service
                     InstructorName = course.Instructor?.FullName,
                     IsActive = course.IsActive,
                     TotalEnrollments = totalEnrollments,
-                    ActiveEnrollments = activeEnrollments,
                     TotalExams = totalExams,
                 };
 
                 return Response<CourseDetailsDto>.Success(courseDetails);
-            }
-            catch (Exception ex)
-            {
-                return Response<CourseDetailsDto>.Fail(
-                    ErrorType.Critical,
-                    new ErrorDetail("COURSE_DETAILS_ERROR", "Failed to fetch course details", ex.Message)
-                );
-            }
+
         }
+        #endregion
+
+        #region QuestionsRelatedCourse
+        public async Task<Response<List<QuestionPoolDto>>> GetQuestionPoolByCourseAsync(int courseId, int currentUserId)
+        {
+                // Check course ownership
+                var course = await _courseRepository.GetByIdAsync(courseId);
+                if (course == null)
+                    return Response<List<QuestionPoolDto>>.Fail(ErrorType.NotFound,
+                        new ErrorDetail("COURSE_NOT_FOUND", "Course not found"));
+
+                if (course.InstructorId != currentUserId)
+                    return Response<List<QuestionPoolDto>>.Fail(ErrorType.Forbidden,
+                        new ErrorDetail("ACCESS_DENIED", "You can only access questions from your own courses"));
+
+                // Get all questions for this course with their choices
+                var questions = await _questionRepository.GetAll(q => q.CourseId == courseId)
+                    .OrderBy(q => q.QuestionLevel)
+                    .ToListAsync();
+
+                var questionIds = questions.Select(q => q.Id).ToList();
+
+                // Get all choices for these questions
+                var choices = await _choiceRepository.GetAll()
+                    .Where(c => questionIds.Contains(c.QuestionId) && !c.IsDeleted)
+                    .ToListAsync();
+
+                // Manual mapping
+                var questionPool = new List<QuestionPoolDto>();
+                foreach (var question in questions)
+                {
+                    var questionChoices = choices.Where(c => c.QuestionId == question.Id).ToList();
+
+                    var choiceDtos = questionChoices.Select(c => new QuestionChoicesPoolDto
+                    {
+                        Id = c.Id,
+                        Text = c.Text,
+                        IsCorrect = c.IsCorrect
+                    }).ToList();
+
+                    questionPool.Add(new QuestionPoolDto
+                    {
+                        Id = question.Id,
+                        Content = question.Content,
+                        Level = question.QuestionLevel,
+                        Mark = question.Mark,
+                        CreatedAt = question.CreatedAt,
+                        Choices = choiceDtos,
+                        ChoiceCount = choiceDtos.Count
+                    });
+                }
+
+                return Response<List<QuestionPoolDto>>.Success(questionPool);
+            }
+        #endregion
     }
 }
+
     
 

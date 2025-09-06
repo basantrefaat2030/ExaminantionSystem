@@ -2,7 +2,7 @@
 
 namespace ExaminantionSystem.Entities
 {
-    public class AuditEntity
+    public class AuditEntity 
     {
         public bool IsDeleted { get; set; } = false;
 

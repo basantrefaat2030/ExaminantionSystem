@@ -28,14 +28,14 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             return await query.AnyAsync();
         }
 
-        public async Task<bool> IsQuestionInExamActive(int questionId)
+
+        public async Task<bool> IsQuestionInExamActiveAsync(int questionId)
         {
-            return await  _context.ExamQuestions.AnyAsync(a => a.QuestionId == questionId 
+            return await _context.ExamQuestions.AnyAsync(a => a.QuestionId == questionId
             && !a.Exam.IsDeleted
-            && a.Exam.IsActive 
+            && a.Exam.IsActive
             && a.Exam.StartDate < DateTime.UtcNow);
         }
-
         public async Task<bool> ExamHasSubmissionsAsync(int examId)
         {
             return await _context.ExamResult

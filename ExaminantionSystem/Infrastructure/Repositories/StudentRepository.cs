@@ -27,13 +27,31 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             return await query.AnyAsync();
         }
 
-        public async Task<bool> StudentIsEnrolledInCourseAsync(int studentId, int courseId)
+        public async Task<bool> IsStudentEnrolledInCourseAsync(int studentId, int courseId)
         {
             return await _context.StudentCourses
                 .AnyAsync(sc => sc.StudentId == studentId &&
                               sc.CourseId == courseId &&
                               sc.Status == RequestStatus.Approved &&
                               !sc.IsDeleted && sc.IsActive);
+        }
+
+        public async Task<bool> IsStudentHasActiveExamAsync(int studentId, int examId)
+        {
+            return await _context.ExamResult
+                    .AnyAsync(er => er.ExamId == examId &&
+                                er.StudentId == studentId &&
+                                er.StartedAt != null &&
+                                !er.IsDeleted && er.IsActive);
+        }
+
+        public async Task<ExamResult> StudentHasActiveExamAsync(int studentId, int examId)
+        {
+            return await _context.ExamResult
+                    .FirstOrDefaultAsync(er => er.ExamId == examId &&
+                                er.StudentId == studentId &&
+                                er.StartedAt != null &&
+                                !er.IsDeleted && er.IsActive);
         }
 
         public async Task<int> GetStudentEnrollmentCountAsync(int studentId)

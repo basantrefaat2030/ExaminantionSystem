@@ -24,18 +24,18 @@ namespace ExaminantionSystem.Infrastructure.Repositories
 
         public IQueryable<TEntity> GetAll()
         {
-            return _dbSet.Where(e => !e.IsDeleted);
+            return _dbSet.Where(e => !e.IsDeleted && e.IsActive);
         }
 
         public async Task<TEntity> GetByIdAsync(int id)
         {
-            var query = await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted );
+            var query = await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted && e.IsActive);
             return query;
         }
 
         public async Task<TEntity> GetByIdTrackingAsync(int id)
         {
-            var res = await _dbSet.AsTracking().FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
+            var res = await _dbSet.AsTracking().FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted && e.IsActive);
             return res;
         }
 
@@ -48,16 +48,17 @@ namespace ExaminantionSystem.Infrastructure.Repositories
 
         public async Task DeleteAsync(int id)
         {
-            await _dbSet.Where(e => e.Id == id && !e.IsDeleted)
+            await _dbSet.Where(e => e.Id == id && !e.IsDeleted && e.IsActive)
              .ExecuteUpdateAsync(setters => setters
              .SetProperty(e => e.IsDeleted, true)
-             .SetProperty(e => e.DeletedAt, DateTime.UtcNow));
+             .SetProperty(e => e.DeletedAt, DateTime.UtcNow)
+             .SetProperty(e => e.IsActive, false));
         }
 
         public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> expression)
         {
             var query = GetAll();
-            return query.Where(expression); ;
+            return query.Where(expression); 
         }
 
         public async Task AddRangeAsync(IEnumerable<TEntity> entities)
@@ -66,7 +67,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
         }
 
 
-        public async Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
+        public async Task UpdateAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls)
         {
             if (predicate == null)
                 throw new ArgumentNullException(nameof(predicate));
@@ -74,10 +75,9 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             if (setPropertyCalls == null)
                 throw new ArgumentNullException(nameof(setPropertyCalls));
 
-            await _dbSet.Where(predicate).ExecuteUpdateAsync(setPropertyCalls);
+            await GetAll(predicate).ExecuteUpdateAsync(setPropertyCalls);
         }
 
-        // Bulk delete by entities using ExecuteUpdate (Highly efficient)
         public async Task DeleteRangeAsync(IEnumerable<TEntity> entities)
         {
             if (!entities.Any()) return;
@@ -94,7 +94,8 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .Where(e => ids.Contains(e.Id))
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(e => e.IsDeleted, true)
-                    .SetProperty(e => e.DeletedAt, DateTime.UtcNow));
+                    .SetProperty(e => e.DeletedAt, DateTime.UtcNow)
+                    .SetProperty(e => e.IsActive, false));
         }
 
         public async Task SaveChangesAsync()
@@ -221,18 +222,18 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .ExecuteUpdateAsync(lambda);
         }
 
-        public async Task BegainTransactionAsync()
-        {
-            await _executionContext.Database.BeginTransactionAsync();
-        }
-        public async Task CommitTransactionAsync()
-        {
-            await _executionContext.Database.CommitTransactionAsync();
-        }
-        public async Task RollbackTransactionAsync()
-        {
-            await _executionContext.Database.RollbackTransactionAsync();
-        }
+        //public async Task BegainTransactionAsync()
+        //{
+        //    await _executionContext.Database.BeginTransactionAsync();
+        //}
+        //public async Task CommitTransactionAsync()
+        //{
+        //    await _executionContext.Database.CommitTransactionAsync();
+        //}
+        //public async Task RollbackTransactionAsync()
+        //{
+        //    await _executionContext.Database.RollbackTransactionAsync();
+        //}
 
     }
 }

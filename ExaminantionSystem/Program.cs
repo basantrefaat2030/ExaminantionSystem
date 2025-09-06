@@ -1,3 +1,4 @@
+using ExaminantionSystem.Extentions;
 using ExaminantionSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 // Add DbContext with connection string
-builder.Services.AddDbContext<ExaminationContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("ExaminationConnection"))
-    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
-    .LogTo(Console.WriteLine, LogLevel.Information));
-
-
+builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
 

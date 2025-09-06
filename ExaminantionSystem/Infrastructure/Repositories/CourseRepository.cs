@@ -21,11 +21,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<int> GetTotalEnrollments(int courseId , bool IsActive = false)
-        {
-            return await _context.StudentCourses
-                        .CountAsync(sc => sc.Id == courseId && !sc.IsDeleted && sc.IsActive == IsActive && sc.Status == RequestStatus.Approved);
-        }
+
         public async Task<bool> CourseTitleExistsAsync(string title, int? instructorId)
         {
             var query = _context.Courses
@@ -61,22 +57,11 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .AnyAsync(e => e.CourseId == courseId && !e.IsDeleted);
         }
 
-        public async Task<bool> IsCourseActiveAsync(int courseId)
+        public async Task<int> GetTotalEnrollmentsAsync(int courseId, bool IsActive = false)
         {
-            return await _context.Courses
-                .AnyAsync(c => c.Id == courseId
-                            && c.IsActive
-                            && !c.IsDeleted);
+            return await _context.StudentCourses
+                        .CountAsync(sc => sc.Id == courseId && !sc.IsDeleted && sc.IsActive == IsActive && sc.Status == RequestStatus.Approved);
         }
-
-        public async Task<bool> CourseExistsAsync(int courseId)
-        {
-            return await _context.Courses
-                .AnyAsync(c => c.Id == courseId && !c.IsDeleted && c.IsActive);
-        }
-
-      
-
 
     }
 

@@ -14,7 +14,6 @@ namespace ExaminantionSystem.Entities.Models
         public DateTime? StartedAt { get; set; }
         public DateTime? SubmittedAt { get; set; }
         public double Score { get; set; }
-        public int TotalQuestions { get; set; }
 
         // Navigation properties
         public virtual Student Student { get; set; }

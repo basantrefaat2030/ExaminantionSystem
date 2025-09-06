@@ -24,7 +24,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
 
         //    return await query.AnyAsync();
         //}
-        public async Task<bool> IsQuestionInExamExist(int questionId)
+        public async Task<bool> IsQuestionInExamExistAsync(int questionId)
         {
             return await _context.ExamQuestions.AnyAsync(a  => a.QuestionId == questionId 
                                                             && !a.IsDeleted 
@@ -34,12 +34,15 @@ namespace ExaminantionSystem.Infrastructure.Repositories
 
         public async Task<List<Question>> GetQuestionsByLevelAsync(int courseId, QuestionLevel level)
         {
-            return await _context.Questions
-                .Where(q => q.CourseId == courseId &&
-                          q.QuestionLevel == level &&
-                          !q.IsDeleted && q.IsActive)
+            return await GetAll(q => q.CourseId == courseId &&
+                          q.QuestionLevel == level)
                 .Include(q => q.Choices.Where(c => !c.IsDeleted))
                 .ToListAsync();
+        }
+
+        public async Task<List<Question>> GetQuestionsByCourseIdAsync(int courseId)
+        {
+            return await GetAll(s => s.CourseId == courseId).ToListAsync();
         }
 
 

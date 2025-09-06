@@ -17,7 +17,7 @@ namespace ExaminantionSystem.Infrastructure
         Task AddRangeAsync(IEnumerable<TEntity> entities);
         Task<int> UpdateAsync(TEntity entity);
 
-        Task UpdateRangeAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls);
+        Task UpdateAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setPropertyCalls);
         Task DeleteAsync(int id);
         Task DeleteRangeAsync(IEnumerable<TEntity> entities);
 
@@ -25,9 +25,9 @@ namespace ExaminantionSystem.Infrastructure
         //IQueryable<TEntity> AsTracking(IQueryable<TEntity> query);
         //transaction
         Task SaveChangesAsync();
-        Task BegainTransaction();
-        Task CommitTransaction();
-        Task RollbackTransaction();
+        //Task BegainTransaction();
+        //Task CommitTransaction();
+        //Task RollbackTransaction();
 
     }
 }

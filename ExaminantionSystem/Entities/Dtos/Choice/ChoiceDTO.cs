@@ -9,6 +9,8 @@ namespace ExaminantionSystem.Entities.Dtos.Choice
 
         public int QuestionId { get; set; }
         public bool IsCorrect { get; set; }
+
+
        // public int QuestionId { get; set; }
     }
 

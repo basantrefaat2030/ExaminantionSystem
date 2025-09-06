@@ -1,15 +1,32 @@
-﻿namespace ExaminantionSystem.Entities.Dtos.Exam
+﻿using ExaminantionSystem.Entities.Dtos.Ouestion;
+
+namespace ExaminantionSystem.Entities.Dtos.Exam
 {
     public class ExamResultDto
     {
-        public int ExamId { get; set; }
-        public string ExamTitle { get; set; }
+
+        public StudentExamInformation studentExamInformation { get; set; }
+
+        public ExamInfomationDto examInfomationDto { get; set; }
+        //public double Percentage { get; set; } 
+        public string CourseName { get; set; }
+
+        public double TotalScore { get; set; }
+        public DateTime ExamStartAt { get; set; }
+        public DateTime ExamCompletedAt { get; set; }
+        public List<EvaluateQuestionResultDto> QuestionResults { get; set; }
+    }
+
+    public class StudentExamInformation
+    {
         public int StudentId { get; set; }
         public string StudentName { get; set; }
-        public double Score { get; set; } // Changed to double
-        public double TotalPoints { get; set; } // Changed to double
-        public double Percentage { get; set; } // Changed to double
-        public DateTime CompletedAt { get; set; }
-        public List<QuestionResultDto> QuestionResults { get; set; }
+    }
+    public class ExamInfomationDto
+    {
+        public int ExamId { get; set; }
+        public string ExamTitle { get; set; }
+
+        public string CourseName { get; set; }
     }
 }

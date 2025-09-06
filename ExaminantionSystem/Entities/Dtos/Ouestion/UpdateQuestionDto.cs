@@ -8,7 +8,7 @@ namespace ExaminantionSystem.Entities.Dtos.Ouestion
         public class UpdateQuestionDto
         {
             //[Required]
-            //public int QuestionId { get; set; }
+            public int QuestionId { get; set; }
 
             [Required(ErrorMessage = "Content is required")]
             [StringLength(1000, ErrorMessage = "Content cannot exceed 1000 characters")]
