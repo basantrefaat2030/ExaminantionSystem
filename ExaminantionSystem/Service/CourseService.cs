@@ -193,23 +193,23 @@ namespace ExaminantionSystem.Service
             }
         }
 
-        public async Task<Response<PagedResponse<CourseInformationDto>>> GetPaginatedCoursesAsync(int? instructorId, int pageNumber, int pageSize)
+        public async Task<Response<PagedResponse<CourseInformationDto>>> GetPaginatedCoursesAsync(int? currentUserId, int pageNumber, int pageSize)
         {
 
-            if (instructorId.HasValue)
+            if (currentUserId.HasValue)
             {
-                var instructor = await _instructorRepository.GetByIdAsync(instructorId.Value);
+                var instructor = await _instructorRepository.GetByIdAsync(currentUserId.Value);
                 if (instructor == null)
                 {
                     return Response<PagedResponse<CourseInformationDto>>.Fail(
                         ErrorType.NotFound,
-                        new ErrorDetail("INSTRUCTOR_NOT_FOUND", "Instructor not found", $"Instructor with ID {instructorId} not found")
+                        new ErrorDetail("INSTRUCTOR_NOT_FOUND", "Instructor not found", $"Instructor with ID {currentUserId} not found")
                     );
                 }
             }
 
             var query = _courseRepository.GetAll(
-                c => c.InstructorId == instructorId && !c.IsDeleted);
+                c => c.InstructorId == currentUserId && !c.IsDeleted);
 
             //If pageNumber = 1 → Skip(0) → start from first record
             //If pageNumber = 2 → Skip(pageSize) → skip first 10, take next 10

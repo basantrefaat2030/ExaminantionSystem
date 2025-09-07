@@ -20,9 +20,9 @@
 
     public class ErrorDetail
     {
-        public string Code { get; set; } // e.g., "USER_EMAIL_EXISTS"
-        public string Title { get; set; } // Short error title
-        public string Detail { get; set; } // Detailed explanation
+        public string Code { get; set; } 
+        public string Title { get; set; } 
+        public string Detail { get; set; } 
         public string Source { get; set; } // Field/parameter causing error
         //public Dictionary<string, object> Meta { get; set; } // Additional context
 

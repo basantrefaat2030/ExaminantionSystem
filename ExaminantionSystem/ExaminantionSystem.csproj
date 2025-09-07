@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.19" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.19" />
@@ -19,7 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Entities\ViewModels\" />
+    <Folder Include="Entities\ViewModels\Choice\" />
+    <Folder Include="Entities\ViewModels\Instructor\" />
+    <Folder Include="Entities\ViewModels\Exam\" />
     <Folder Include="Infrastructure\LocalDB\" />
   </ItemGroup>
 

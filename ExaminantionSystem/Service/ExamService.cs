@@ -98,7 +98,10 @@ namespace ExaminantionSystem.Service
                 return Response<ExamDto>.Fail(ErrorType.NotFound,
                     new ErrorDetail("EXAM_NOT_FOUND", "Exam not found"));
 
-            // Check ownership
+            if (exam.StartDate > DateTime.Now)
+                return Response<ExamDto>.Fail(ErrorType.BusinessRule,
+                    new ErrorDetail("EXAM_ALREADY_STARTED", "Cannot update an exam that has already started"));
+
             var course = await _courseRepository.GetByIdAsync(exam.CourseId);
             if (course.InstructorId != currentUserId)
                 return Response<ExamDto>.Fail(ErrorType.Forbidden,
@@ -143,7 +146,7 @@ namespace ExaminantionSystem.Service
                     new ErrorDetail("ACCESS_DENIED", "You can only delete your own exams"));
 
             // Check if exam has student attempts
-            var hasAttempts = await _examRepository.ExamHasSubmissionsAsync(examId);
+            var hasAttempts = await _examRepository.IsExamHasSubmissionsAsync(examId);
 
             if (hasAttempts)
                 return Response<bool>.Fail(ErrorType.BusinessRule,
@@ -181,15 +184,15 @@ namespace ExaminantionSystem.Service
                 var selectedQuestions = new List<Question>();
 
                 // Add simple questions (40%)
-                var simpleCount = (int)Math.Ceiling(questionsNumber * 0.4);
-                selectedQuestions.AddRange(simpleQuestions.Take(simpleCount));
+                var easyCount = (int)Math.Ceiling(questionsNumber * 0.4);
+                selectedQuestions.AddRange(simpleQuestions.Take(easyCount));
 
                 // Add medium questions (40%)
                 var mediumCount = (int)Math.Ceiling(questionsNumber * 0.4);
                 selectedQuestions.AddRange(mediumQuestions.Take(mediumCount));
 
                 // Add hard questions (20%)
-                var hardCount = questionsNumber - simpleCount - mediumCount;
+                var hardCount = questionsNumber - easyCount - mediumCount;
                 selectedQuestions.AddRange(hardQuestions.Take(hardCount));
 
                 // If we don't have enough questions, fill with available ones

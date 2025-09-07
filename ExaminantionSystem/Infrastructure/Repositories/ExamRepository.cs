@@ -36,10 +36,10 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             && a.Exam.IsActive
             && a.Exam.StartDate < DateTime.UtcNow);
         }
-        public async Task<bool> ExamHasSubmissionsAsync(int examId)
+        public async Task<bool> IsExamHasSubmissionsAsync(int examId)
         {
             return await _context.ExamResult
-                .AnyAsync(er => er.ExamId == examId && !er.IsDeleted);
+                .AnyAsync(er => er.ExamId == examId && !er.IsDeleted && er.IsActive);
         }
 
 
