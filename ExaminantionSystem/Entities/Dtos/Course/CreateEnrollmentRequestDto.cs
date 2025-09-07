@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ExaminantionSystem.Entities.Dtos.Courcse
+namespace ExaminantionSystem.Entities.Dtos.Course
 {
     public class CreateEnrollmentRequestDto
     {

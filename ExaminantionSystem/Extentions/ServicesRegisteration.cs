@@ -6,6 +6,7 @@ using ExaminantionSystem.Service;
 using Microsoft.EntityFrameworkCore;
 using ExaminantionSystem.MappingProfile;
 using ExaminantionSystem.Entities.ViewModels.Course.MappingProfile;
+using ExaminantionSystem.Entities.Dtos.Course.MappingProfile;
 
 namespace ExaminantionSystem.Extentions
 {
@@ -40,9 +41,13 @@ namespace ExaminantionSystem.Extentions
             services.AddScoped<StudentService>();
             services.AddScoped<InstructorService>();
 
-            //registeraion for automapper
+            //register Auto Mapper for Services
+            services.AddAutoMapper(typeof(CourseServiceMappingProfile));
+
+            //registeraion automapper for controllers
             services.AddAutoMapper(typeof(GeneralMapping));
             services.AddAutoMapper(typeof(CourseMappingProfile));
+
 
             return services;
         }

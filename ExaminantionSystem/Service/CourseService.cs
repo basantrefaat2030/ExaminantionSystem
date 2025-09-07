@@ -1,10 +1,9 @@
-﻿using ExaminantionSystem.Entities.Dtos.Choice;
-using ExaminantionSystem.Entities.Dtos.Courcse;
+﻿using AutoMapper;
+using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Course;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Wrappers;
-using ExaminantionSystem.Infrastructure;
 using ExaminantionSystem.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,23 +22,26 @@ namespace ExaminantionSystem.Service
     {
         private readonly CourseRepository _courseRepository;
         private readonly InstructorRepository _instructorRepository;
-        private readonly StudentRepository _studentRepository;
+        //private readonly StudentRepository _studentRepository;
         private readonly ExamRepository _examRepository;
         private readonly QuestionRepository _questionRepository;
         private readonly ChoiceRepository _choiceRepository;
+        private readonly IMapper _mapper;
 
         public CourseService(
           CourseRepository courseRepository,
           InstructorRepository instructorRepository,
           ExamRepository examRepository,
           QuestionRepository questionRepository,
-          ChoiceRepository choiceRepository)
+          ChoiceRepository choiceRepository,
+          IMapper mapper)
         {
             _courseRepository = courseRepository;
             _instructorRepository = instructorRepository;
             _examRepository = examRepository;
             _questionRepository = questionRepository;
             _choiceRepository = choiceRepository;
+            _mapper = mapper;
         }
 
         #region CourseCRUD
@@ -62,34 +64,17 @@ namespace ExaminantionSystem.Service
                         ErrorType.Conflict,
                         new ErrorDetail("COURSE_TITLE_EXISTS", "Course title exists", $"Course with title '{dto.Title}' already exists", "title")
                     );
-                
 
-                // Create course logic...
-                var course = new Course
-                {
-                    Title = dto.Title,
-                    Description = dto.Description,
-                    InstructorId = dto.InstructorId,
-                    Hours = dto.Hours,
-                    Budget = dto.Budget,
-                    CreatedBy = currentUserId,
-                    CreatedAt = DateTime.UtcNow
-                };
+
+                var course = _mapper.Map<Course>(dto);
+                course.CreatedBy = currentUserId;
 
                 await _courseRepository.AddAsync(course);
                 await _courseRepository.SaveChangesAsync();
 
-                var courseDto = new CourseDto
-                {
-                    Id = course.Id,
-                    Title = course.Title,
-                    Description = course.Description,
-                    InstructorId = course.InstructorId,
-                    Hours = dto.Hours,
-                    Budget = dto.Budget,
-                };
+                var courseDto = _mapper.Map<CourseDto>(course);
 
-                return Response<CourseDto>.Success(courseDto);
+            return Response<CourseDto>.Success(courseDto);
             
 
         }
@@ -129,8 +114,6 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<CourseDto>> UpdateCourseAsync(UpdateCourseDto dto, int currentUserId)
         {
-            try
-            {
                 var course = await _courseRepository.GetByIdTrackingAsync(dto.courseId);
                 if (course == null)
                 {
@@ -158,40 +141,18 @@ namespace ExaminantionSystem.Service
                 //        new ErrorDetail("NOT_COURSE_OWNER", "Not the course owner", $"User {instrcutorId} is not the owner of course {courseId}")
                 //    );
                 //}
-                // Update course properties
-                course.Title = dto.Title;
-                course.Description = dto.Description;
-                course.Hours = dto.Hours;
-                course.Budget = dto.Budget;
-                course.InstructorId = dto.InstructorId;
-             
+                _mapper.Map(dto, course);
+                course.UpdatedAt = DateTime.UtcNow;
 
                 await _courseRepository.UpdateAsync(course);
                 await _courseRepository.SaveChangesAsync();
 
                 var updatedCourse = await _courseRepository.GetByIdAsync(course.Id);
-
-                var courseDto = new CourseDto
-                {
-                    Id = updatedCourse.Id,
-                    Title = updatedCourse.Title,
-                    Description = updatedCourse.Description,
-                    Hours = updatedCourse.Hours.Value,
-                    Budget = updatedCourse.Budget,
-                    InstructorId = updatedCourse.InstructorId,
-
-                };
+                var courseDto = _mapper.Map<CourseDto>(updatedCourse);
 
                 return Response<CourseDto>.Success(courseDto);
             }
-            catch (Exception ex)
-            {
-                return Response<CourseDto>.Fail(
-                    ErrorType.Critical,
-                    new ErrorDetail("COURSE_STATUS_ERROR", "Failed to toggle course status", ex.Message)
-                );
-            }
-        }
+        
 
         public async Task<Response<PagedResponse<CourseInformationDto>>> GetPaginatedCoursesAsync(int? currentUserId, int pageNumber, int pageSize)
         {
@@ -221,18 +182,7 @@ namespace ExaminantionSystem.Service
                 .Take(pageSize)
                 .ToListAsync();
 
-            var courseDtos = courses.Select(c => new CourseInformationDto
-            {
-                Id = c.Id,
-                Title = c.Title,
-                Description = c.Description,
-                Hours = c.Hours.Value,
-                Budget = c.Budget,
-                InstructorId = c.InstructorId,
-                InstructorName = c.Instructor?.FullName,
-                IsActive = c.IsActive,
-
-            }).ToList();
+            var courseDtos = _mapper.Map<List<CourseInformationDto>>(courses);
 
             var pagedResponse = new PagedResponse<CourseInformationDto>(courseDtos, pageNumber, pageSize, totalRecords);
             return Response<PagedResponse<CourseInformationDto>>.Success(pagedResponse);
@@ -256,19 +206,9 @@ namespace ExaminantionSystem.Service
                 // Get exam statistics
                 var totalExams = await _examRepository.GetTotalExam(courseId);
 
-                var courseDetails = new CourseDetailsDto
-                {
-                    Id = course.Id,
-                    Title = course.Title,
-                    Description = course.Description,
-                    Hours = course.Hours.Value,
-                    Budget = course.Budget,
-                    InstructorId = course.InstructorId,
-                    InstructorName = course.Instructor?.FullName,
-                    IsActive = course.IsActive,
-                    TotalEnrollments = totalEnrollments,
-                    TotalExams = totalExams,
-                };
+                var courseDetails = _mapper.Map<CourseDetailsDto>(course);
+                courseDetails.TotalEnrollments = totalEnrollments;
+                courseDetails.TotalExams = totalExams;
 
                 return Response<CourseDetailsDto>.Success(courseDetails);
 
@@ -300,32 +240,18 @@ namespace ExaminantionSystem.Service
                     .Where(c => questionIds.Contains(c.QuestionId) && !c.IsDeleted)
                     .ToListAsync();
 
-                // Manual mapping
-                var questionPool = new List<QuestionPoolDto>();
-                foreach (var question in questions)
-                {
-                    var questionChoices = choices.Where(c => c.QuestionId == question.Id).ToList();
+            var questionPool = _mapper.Map<List<QuestionPoolDto>>(questions);
 
-                    var choiceDtos = questionChoices.Select(c => new QuestionChoicesPoolDto
-                    {
-                        Id = c.Id,
-                        Text = c.Text,
-                        IsCorrect = c.IsCorrect
-                    }).ToList();
+            // Manually set choices since it's a complex mapping
+            foreach (var questionDto in questionPool)
+            {
+                var question = questions.FirstOrDefault(q => q.Id == questionDto.Id);
+                var questionChoices = choices.Where(c => c.QuestionId == question.Id).ToList();
+                questionDto.Choices = _mapper.Map<List<QuestionChoicesPoolDto>>(questionChoices);
+            }
 
-                    questionPool.Add(new QuestionPoolDto
-                    {
-                        Id = question.Id,
-                        Content = question.Content,
-                        Level = question.QuestionLevel,
-                        Mark = question.Mark,
-                        CreatedAt = question.CreatedAt,
-                        Choices = choiceDtos,
-                        ChoiceCount = choiceDtos.Count
-                    });
-                }
+            return Response<List<QuestionPoolDto>>.Success(questionPool);
 
-                return Response<List<QuestionPoolDto>>.Success(questionPool);
             }
         #endregion
     }

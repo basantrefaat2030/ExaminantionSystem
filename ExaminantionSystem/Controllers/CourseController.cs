@@ -26,35 +26,34 @@ namespace ExaminantionSystem.Controllers
 
         [HttpPost]
         //[Authorize(Roles = "Instructor")]
-        public async Task<ResponseViewModel<CourseViewModel>> CreateCourse([FromBody] CreateCourseViewModel viewModel)
+        public async Task<ResponseViewModel<CourseVM>> CreateCourse([FromBody] CreateCourseVM viewModel)
         {
             var currentUserId = _currentUserService.UserId;
 
             var createCourseDto = _mapper.Map<CreateCourseDto>(viewModel);
             var result = await _courseService.CreateCourseAsync(createCourseDto, currentUserId);
 
-            return _mapper.Map<ResponseViewModel<CourseViewModel>>(result);
+            return _mapper.Map<ResponseViewModel<CourseVM>>(result);
         }
 
         [HttpPut("{id}")]
         //[Authorize(Roles = "Instructor")]
-        public async Task<ResponseViewModel<CourseViewModel>> UpdateCourse(int id, [FromBody] UpdateCourseViewModel viewModel)
+        public async Task<ResponseViewModel<CourseVM>> UpdateCourse(int id, [FromBody] UpdateCourseVM viewModel)
         {
             if (id != viewModel.CourseId)
             {
-                return ResponseViewModel<CourseViewModel>.Fail(
-                    new ErrorResponseViewModel
-                    {
+                return ResponseViewModel<CourseVM>.Fail( new ErrorResponseViewModel
+                {
                         Type = "Validation",
                         StatusCode = 400,
                         Errors = new List<ErrorDetailViewModel>
                         {
-                        new ErrorDetailViewModel(
-                            "ID_MISMATCH",
-                            "ID mismatch",
-                            "Route ID and body CourseId must match",
-                            "id"
-                        )
+                            new ErrorDetailViewModel(
+                                "ID_MISMATCH",
+                                "ID mismatch",
+                                "Route ID and body CourseId must match",
+                                "id"
+                            )
                         }
                     },
                     "ID mismatch"
@@ -65,7 +64,7 @@ namespace ExaminantionSystem.Controllers
             var updateCourseDto = _mapper.Map<UpdateCourseDto>(viewModel);
             var result = await _courseService.UpdateCourseAsync(updateCourseDto, currentUserId);
 
-            return _mapper.Map<ResponseViewModel<CourseViewModel>>(result);
+            return _mapper.Map<ResponseViewModel<CourseVM>>(result);
         }
 
         [HttpDelete("{courseId}")]

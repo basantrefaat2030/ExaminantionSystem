@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ExaminantionSystem.Entities.Dtos.Courcse
+namespace ExaminantionSystem.Entities.Dtos.Course
 {
     public class CourseDto
     {

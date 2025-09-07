@@ -1,4 +1,6 @@
-﻿namespace ExaminantionSystem.Entities.ViewModels
+﻿using ExaminantionSystem.Entities.Wrappers;
+
+namespace ExaminantionSystem.Entities.ViewModels
 {
     public class ResponseViewModel<T>
     {
@@ -8,25 +10,10 @@
         public string Message { get; set; }
 
 
-        public static ResponseViewModel<T> Success(T data, string message = null)
-        {
-            return new ResponseViewModel<T>
-            {
-                Succeeded = true,
-                Data = data,
-                Message = message
-            };
-        }
+        public static ResponseViewModel<T> Success(T data) => new() { Data = data, Succeeded = true, Message = string.Empty };
 
-        public static ResponseViewModel<T> Fail(ErrorResponseViewModel error, string message = null)
-        {
-            return new ResponseViewModel<T>
-            {
-                Succeeded = false,
-                Error = error,
-                Message = message
-            };
-        }
+        // Error constructors
+        public static ResponseViewModel<T> Fail(ErrorType type, params ErrorDetail[] errors) => new() { Error = new ErrorResponseViewModel(type, errors), Succeeded = false };
 
 
     }
@@ -34,10 +21,17 @@
 
     public class ErrorResponseViewModel
     {
-        public string Type { get; set; }
-        public int StatusCode { get; set; }
+        public ErrorType Type { get; set; }
+        public int StatusCode => (int)Type;
         public IEnumerable<ErrorDetailViewModel> Errors { get; set; }
         public string URIError { get; set; }
+
+        public ErrorResponseViewModel(ErrorType type, IEnumerable<ErrorDetailViewModel> errors, string UriError = null)
+        {
+            Type = type;
+            Errors = errors;
+            URIError = UriError;
+        }
     }
 
     public class ErrorDetailViewModel
