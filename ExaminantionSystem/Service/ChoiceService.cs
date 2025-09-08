@@ -1,4 +1,5 @@
-﻿using ExaminantionSystem.Entities.Dtos.Choice;
+﻿using AutoMapper;
+using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
 using ExaminantionSystem.Entities.Enums.Errors;
 using ExaminantionSystem.Entities.Models;
@@ -13,15 +14,18 @@ namespace ExaminantionSystem.Service
         private readonly ChoiceRepository _choiceRepository;
         private readonly QuestionRepository _questionRepository;
         private readonly CourseRepository _courseRepository;
+        private readonly IMapper _mapper;
 
         public ChoiceService(
             ChoiceRepository choiceRepository,
             QuestionRepository questionRepository,
-            CourseRepository courseRepository)
+            CourseRepository courseRepository,
+            IMapper mapper)
         {
             _choiceRepository = choiceRepository;
             _questionRepository = questionRepository;
             _courseRepository = courseRepository;
+            _mapper = mapper;
         }
 
 
@@ -36,17 +40,15 @@ namespace ExaminantionSystem.Service
             // Validate exactly one correct answer
             var correctChoicesCount = choicesDto.Count(c => c.IsCorrect);
             if (correctChoicesCount != 1)
-                return Response<List<ChoiceDto>>.Fail(ErrorType.INVALID_CORRECT_ANSWERS,
-                    new ErrorDetail("Question must have exactly one correct answer"));
+                return Response<List<ChoiceDto>>.Fail(ErrorType.INVALID_CORRECT_ANSWERS,new ErrorDetail("Question must have exactly one correct answer"));
 
             // Validate minimum and maximum choices
             if (choicesDto.Count < 2)
-                return Response<List<ChoiceDto>>.Fail(ErrorType.MIN_CHOICES_REQUIRED,
-                    new ErrorDetail("Question must have at least 2 choices"));
+                return Response<List<ChoiceDto>>.Fail(ErrorType.MIN_CHOICES_REQUIRED,new ErrorDetail("Question must have at least 2 choices"));
 
             if (choicesDto.Count > 4)
                 return Response<List<ChoiceDto>>.Fail(ErrorType.MAX_CHOICES_EXCEEDED,
-                    new ErrorDetail("Question cannot have more than 6 choices"));
+                    new ErrorDetail("Question cannot have more than 4 choices"));
 
             // Validate choice content
             foreach (var choice in choicesDto)
@@ -56,33 +58,25 @@ namespace ExaminantionSystem.Service
                         new ErrorDetail("Choice content cannot be empty"));
             }
 
-            var choices = choicesDto.Select(choiceDto => new Choice
+                var choices = _mapper.Map<List<Choice>>(choicesDto);
+                choices.ForEach(choice =>
                 {
-                    Text = choiceDto.Text.Trim(),
-                    IsCorrect = choiceDto.IsCorrect,
-                    QuestionId = questionId,
-                    CreatedBy = currentUserId
-                }).ToList();
+                    choice.QuestionId = questionId;
+                    choice.CreatedBy = currentUserId;
+                });
 
                 await _choiceRepository.AddRangeAsync(choices);
                 await _choiceRepository.SaveChangesAsync();
 
-                // Manual mapping
-                var choiceDtos = choices.Select(c => new ChoiceDto
-                {
-                    Id = c.Id,
-                    Text = c.Text,
-                    IsCorrect = c.IsCorrect,
-                    QuestionId = c.QuestionId,
-                }).ToList();
-
+                var choiceDtos = _mapper.Map<List<ChoiceDto>>(choices);
                 return Response<List<ChoiceDto>>.Success(choiceDtos);
+
             }
         
-        public async Task<Response<ChoiceDto>> UpdateChoiceAsync(int choiceId, UpdateChoiceDto dto, int currentUserId)
+        public async Task<Response<ChoiceDto>> UpdateChoiceAsync(UpdateChoiceDto dto, int currentUserId)
         {
            
-                var choice = await _choiceRepository.GetByIdAsync(choiceId);
+                var choice = await _choiceRepository.GetByIdAsync(dto.choiceId);
                 if (choice == null)
                     return Response<ChoiceDto>.Fail(ErrorType.CHOICE_NOT_FOUND,
                         new ErrorDetail( "Choice not found"));
@@ -97,17 +91,14 @@ namespace ExaminantionSystem.Service
                 // If setting this choice as correct, ensure no other correct choices exist
                 if (dto.IsCorrect)
                 {
-                    var otherCorrectChoices = await _choiceRepository.GetAll()
-                        .Where(c => c.QuestionId == choice.QuestionId &&
-                                   c.Id != choiceId &&
-                                   c.IsCorrect).ToListAsync();
+                    var otherCorrectChoices = await _choiceRepository.GetAll(c => c.QuestionId == choice.QuestionId && c.Id != dto.choiceId && c.IsCorrect).ToListAsync();
 
                     if (otherCorrectChoices.Any())
                     {
                         // Set all other choices as incorrect
                         await _choiceRepository.UpdateAsync(
                             c => c.QuestionId == choice.QuestionId &&
-                                 c.Id != choiceId && c.IsCorrect,
+                                 c.Id != dto.choiceId && c.IsCorrect,
                             s => s.SetProperty(c => c.IsCorrect, false)
                                   .SetProperty(c => c.UpdatedAt, DateTime.UtcNow)
                                   
@@ -122,14 +113,7 @@ namespace ExaminantionSystem.Service
                 await _choiceRepository.UpdateAsync(choice);
                 await _choiceRepository.SaveChangesAsync();
 
-                // Manual mapping
-                var result = new ChoiceDto
-                {
-                    Id = choice.Id,
-                    Text = choice.Text,
-                    IsCorrect = choice.IsCorrect,
-                    QuestionId = choice.QuestionId,
-                };
+                var result = _mapper.Map<ChoiceDto>(choice);
 
                 return Response<ChoiceDto>.Success(result);
         }
@@ -137,7 +121,7 @@ namespace ExaminantionSystem.Service
         public async Task<Response<bool>> DeleteChoiceAsync(int choiceId, int currentUserId)
         {
                 var choice = await _choiceRepository.GetByIdAsync(choiceId);
-                if (choice == null || choice.IsDeleted)
+                if (choice == null)
                     return Response<bool>.Fail(ErrorType.CHOICE_NOT_FOUND,
                         new ErrorDetail( "Choice not found"));
 

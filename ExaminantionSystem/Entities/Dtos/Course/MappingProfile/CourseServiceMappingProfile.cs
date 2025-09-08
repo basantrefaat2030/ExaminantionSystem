@@ -11,37 +11,27 @@ namespace ExaminantionSystem.Entities.Dtos.Course.MappingProfile
         {
             // Entity to DTO mappings
             CreateMap<Models.Course, CourseDto>()
-                .ForMember(dest => dest.Hours, opt => opt.MapFrom(src => src.Hours.Value))
-                .ForMember(dest => dest.Budget, opt => opt.MapFrom(src => src.Budget));
+                .ForMember(dest => dest.Hours, opt => opt.MapFrom(src => src.Hours.Value)).ReverseMap();
 
             CreateMap<Models.Course, CourseInformationDto>()
                 .ForMember(dest => dest.Hours, opt => opt.MapFrom(src => src.Hours.Value))
-                .ForMember(dest => dest.Budget, opt => opt.MapFrom(src => src.Budget))
-                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Instructor.FullName));
+                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Instructor.FullName)).ReverseMap();
 
             CreateMap<Models.Course, CourseDetailsDto>()
                 .ForMember(dest => dest.Hours, opt => opt.MapFrom(src => src.Hours.Value))
-                .ForMember(dest => dest.Budget, opt => opt.MapFrom(src => src.Budget))
-                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Instructor.FullName));
+                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Instructor.FullName)).ReverseMap();
 
             // Question and Choice mappings
             CreateMap<Models.Question, QuestionPoolDto>()
-                .ForMember(dest => dest.Level, opt => opt.MapFrom(src => src.QuestionLevel))
-                .ForMember(dest => dest.ChoiceCount, opt => opt.MapFrom(src => src.Choices.Count(c => !c.IsDeleted)));
+                .ForMember(dest => dest.Level, opt => opt.MapFrom(src => src.QuestionLevel)).ReverseMap();
 
-            CreateMap<Models.Choice, QuestionChoicesPoolDto>();
+            CreateMap<Models.Choice, QuestionChoicesPoolDto>().ReverseMap();
 
-            // Create DTO to Entity
             CreateMap<CreateCourseDto, Models.Course>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
-                .ForMember(dest => dest.Hours, opt => opt.MapFrom(src => (byte?)src.Hours));
+                .ForMember(dest => dest.Hours.Value, opt => opt.MapFrom(src => src.Hours));
 
-            // Update DTO to Entity
             CreateMap<UpdateCourseDto, Models.Course>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.courseId))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.Hours, opt => opt.MapFrom(src => (byte?)src.Hours));
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.courseId)).ReverseMap();
         }
 
     }

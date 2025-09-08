@@ -46,36 +46,36 @@ namespace ExaminantionSystem.Service
         }
 
         #region CourseCRUD
-        public async Task<Response<CourseDto>> CreateCourseAsync(CreateCourseDto dto , int currentUserId)
+        public async Task<Response<CourseDto>> CreateCourseAsync(CreateCourseDto coursedto , int currentUserId)
         {
 
                 // Validate instructor exists
-                var instructor = await _instructorRepository.GetByIdAsync(dto.InstructorId);
+                var instructor = await _instructorRepository.GetByIdAsync(coursedto.InstructorId);
                 if (instructor == null)
                     return Response<CourseDto>.Fail(
                         ErrorType.INSTRUCTOR_NOT_FOUND,
-                        new ErrorDetail("Instructor not found", $"Instructor with ID {dto.InstructorId} not found", "instructorId")
+                        new ErrorDetail("Instructor not found", $"Instructor with ID {coursedto.InstructorId} not found", "instructorId")
                     );
                 
 
                 // Check for duplicate course title
-                var titleExists = await _courseRepository.CourseTitleExistsAsync(dto.Title, dto.InstructorId);
+                var titleExists = await _courseRepository.CourseTitleExistsAsync(coursedto.Title, coursedto.InstructorId);
                 if (titleExists)
                     return Response<CourseDto>.Fail(
                         ErrorType.COURSE_TITLE_EXISTS,
-                        new ErrorDetail("Course title exists", $"Course with title '{dto.Title}' already exists", "title")
+                        new ErrorDetail("Course title exists", $"Course with title '{coursedto.Title}' already exists", "title")
                     );
 
 
-                var course = _mapper.Map<Course>(dto);
+                var course = _mapper.Map<Course>(coursedto);
                 course.CreatedBy = currentUserId;
 
                 await _courseRepository.AddAsync(course);
                 await _courseRepository.SaveChangesAsync();
 
-                var courseDto = _mapper.Map<CourseDto>(course);
+                var newCourse = _mapper.Map<CourseDto>(course);
 
-            return Response<CourseDto>.Success(courseDto);
+                return Response<CourseDto>.Success(newCourse);
             
 
         }
@@ -89,18 +89,22 @@ namespace ExaminantionSystem.Service
                     ErrorType.COURSE_NOT_FOUND, new ErrorDetail("Course not found", $"Course with ID {courseId} not found"));
 
 
+            if (course.InstructorId != currentUserId)
+                return Response<bool>.Fail(ErrorType.NOT_COURSE_OWNER,
+                    new ErrorDetail("canot delete this course beacuse this course donot own this instructor"));
+
             var hasEnrollments = await _courseRepository.CourseHasActiveEnrollmentsAsync(courseId);
             if (hasEnrollments)
 
-                return Response<bool>.Fail(ErrorType.COURSE_HAS_ENROLLMENTS, new ErrorDetail("Course has active enrollments", $"Cannot delete course because it has active enrollments")
-                );
+                return Response<bool>.Fail(ErrorType.COURSE_HAS_ENROLLMENTS, 
+                    new ErrorDetail("Course has active enrollments", "Cannot delete course because it has active enrollments"));
 
 
             var hasExams = await _courseRepository.CourseHasExamsAsync(courseId);
             if (hasExams)
 
-                return Response<bool>.Fail(ErrorType.COURSE_HAS_EXAMS, new ErrorDetail( "Course has exams", $"Cannot delete course because it has associated exams")
-                );
+                return Response<bool>.Fail(ErrorType.COURSE_HAS_EXAMS, 
+                    new ErrorDetail("Course has exams", $"Cannot delete course because it has associated exams"));
 
             await _courseRepository.DeleteAsync(courseId);
             await _courseRepository.SaveChangesAsync();
@@ -121,7 +125,7 @@ namespace ExaminantionSystem.Service
                 }
 
                 // Check for duplicate title (excluding current course)
-                var titleExists = await _courseRepository.CourseTitleExistsAsync(dto.Title, course.InstructorId);
+                var titleExists = await _courseRepository.CourseTitleExistsAsync(dto.Title, currentUserId);
                 if (titleExists)
                 {
                     return Response<CourseDto>.Fail(
@@ -131,14 +135,14 @@ namespace ExaminantionSystem.Service
                 }
 
 
-                //if (course.InstructorId != entity.InstructorId)
-                //{
-                //    return Response<CourseDto>.Fail(
-                //        ErrorType.Forbidden,
-                //        new ErrorDetail("NOT_COURSE_OWNER", "Not the course owner", $"User {instrcutorId} is not the owner of course {courseId}")
-                //    );
-                //}
-                _mapper.Map(dto, course);
+            if (course.InstructorId != currentUserId)
+            {
+                return Response<CourseDto>.Fail(
+                    ErrorType.NOT_COURSE_OWNER,
+                    new ErrorDetail("Not the course owner", $"User {currentUserId} is not the owner of course {dto.Title}")
+                );
+            }
+            _mapper.Map(dto, course);
                 course.UpdatedAt = DateTime.UtcNow;
 
                 await _courseRepository.UpdateAsync(course);
@@ -215,27 +219,27 @@ namespace ExaminantionSystem.Service
         #region QuestionsRelatedCourse
         public async Task<Response<List<QuestionPoolDto>>> GetQuestionPoolByCourseAsync(int courseId, int currentUserId)
         {
-                // Check course ownership
-                var course = await _courseRepository.GetByIdAsync(courseId);
-                if (course == null)
-                    return Response<List<QuestionPoolDto>>.Fail(ErrorType.COURSE_NOT_FOUND,
-                        new ErrorDetail("Course not found"));
+            // Check course ownership
+            var course = await _courseRepository.GetByIdAsync(courseId);
+            if (course == null)
+                return Response<List<QuestionPoolDto>>.Fail(ErrorType.COURSE_NOT_FOUND,
+                    new ErrorDetail("Course not found"));
 
-                if (course.InstructorId != currentUserId)
-                    return Response<List<QuestionPoolDto>>.Fail(ErrorType.ACCESS_DENIED,
-                        new ErrorDetail( "You can only access questions from your own courses"));
+            if (course.InstructorId != currentUserId)
+                return Response<List<QuestionPoolDto>>.Fail(ErrorType.NOT_COURSE_OWNER,
+                    new ErrorDetail("You can only access questions from your own courses"));
 
-                // Get all questions for this course with their choices
-                var questions = await _questionRepository.GetAll(q => q.CourseId == courseId)
-                    .OrderBy(q => q.QuestionLevel)
-                    .ToListAsync();
+            // Get all questions for this course with their choices
+            var questions = await _questionRepository.GetAll(q => q.CourseId == courseId)
+                .OrderBy(q => q.QuestionLevel)
+                .ToListAsync();
 
-                var questionIds = questions.Select(q => q.Id).ToList();
+            var questionIds = questions.Select(q => q.Id).ToList();
 
-                // Get all choices for these questions
-                var choices = await _choiceRepository.GetAll()
-                    .Where(c => questionIds.Contains(c.QuestionId) && !c.IsDeleted)
-                    .ToListAsync();
+            // Get all choices for these questions
+            var choices = await _choiceRepository.GetAll()
+                .Where(c => questionIds.Contains(c.QuestionId) && !c.IsDeleted)
+                .ToListAsync();
 
             var questionPool = _mapper.Map<List<QuestionPoolDto>>(questions);
 
@@ -249,7 +253,7 @@ namespace ExaminantionSystem.Service
 
             return Response<List<QuestionPoolDto>>.Success(questionPool);
 
-            }
+        }
         #endregion
     }
 }

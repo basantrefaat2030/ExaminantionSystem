@@ -1,7 +1,6 @@
 ﻿
 using ExaminantionSystem.Entities.Dtos.Exam;
 using ExaminantionSystem.Entities.Enums.Errors;
-using ExaminantionSystem.Entities.Errors;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Shared;
 using ExaminantionSystem.Entities.Wrappers;
@@ -42,8 +41,7 @@ namespace ExaminantionSystem.Service
 
             var course = await _courseRepository.GetByIdAsync(dto.CourseId);
             if (course == null)
-                return Response<ExamDto>.Fail(ErrorType.COURSE_NOT_FOUND,
-                    new ErrorDetail("Course not found"));
+                return Response<ExamDto>.Fail(ErrorType.COURSE_NOT_FOUND,new ErrorDetail("Course not found"));
 
             if (course.InstructorId != currentUserId)
                 return Response<ExamDto>.Fail(ErrorType.ACCESS_DENIED,
@@ -240,8 +238,8 @@ namespace ExaminantionSystem.Service
             
                 var exam = await _examRepository.GetByIdAsync(examId);
                 if (exam == null)
-                    return Response<ExamWithQuestionsDto>.Fail(ErrorType.NotFound,
-                        new ErrorDetail(ErrorCode.EXAM_NOT_FOUND, "Exam not found"));
+                    return Response<ExamWithQuestionsDto>.Fail(ErrorType.EXAM_NOT_FOUND,
+                        new ErrorDetail("Exam not found"));
 
                 // Get course info
                 var course = await _courseRepository.GetByIdAsync(exam.CourseId);
