@@ -1,5 +1,6 @@
 ﻿using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
+using ExaminantionSystem.Entities.Enums.Errors;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Wrappers;
 using ExaminantionSystem.Infrastructure.Repositories;
@@ -28,31 +29,31 @@ namespace ExaminantionSystem.Service
         {
             var question = await _questionRepository.GetByIdAsync(questionId);
             if (question == null)
-                return Response<List<ChoiceDto>>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("QUESTION_NOT_FOUND", "Question not found"));
+                return Response<List<ChoiceDto>>.Fail(ErrorType.QUESTION_NOT_FOUND,
+                    new ErrorDetail("Question not found"));
 
 
             // Validate exactly one correct answer
             var correctChoicesCount = choicesDto.Count(c => c.IsCorrect);
             if (correctChoicesCount != 1)
-                return Response<List<ChoiceDto>>.Fail(ErrorType.Validation,
-                    new ErrorDetail("INVALID_CORRECT_ANSWERS", "Question must have exactly one correct answer"));
+                return Response<List<ChoiceDto>>.Fail(ErrorType.INVALID_CORRECT_ANSWERS,
+                    new ErrorDetail("Question must have exactly one correct answer"));
 
             // Validate minimum and maximum choices
             if (choicesDto.Count < 2)
-                return Response<List<ChoiceDto>>.Fail(ErrorType.Validation,
-                    new ErrorDetail("MIN_CHOICES_REQUIRED", "Question must have at least 2 choices"));
+                return Response<List<ChoiceDto>>.Fail(ErrorType.MIN_CHOICES_REQUIRED,
+                    new ErrorDetail("Question must have at least 2 choices"));
 
             if (choicesDto.Count > 4)
-                return Response<List<ChoiceDto>>.Fail(ErrorType.Validation,
-                    new ErrorDetail("MAX_CHOICES_EXCEEDED", "Question cannot have more than 6 choices"));
+                return Response<List<ChoiceDto>>.Fail(ErrorType.MAX_CHOICES_EXCEEDED,
+                    new ErrorDetail("Question cannot have more than 6 choices"));
 
             // Validate choice content
             foreach (var choice in choicesDto)
             {
                 if (string.IsNullOrWhiteSpace(choice.Text))
-                    return Response<List<ChoiceDto>>.Fail(ErrorType.Validation,
-                        new ErrorDetail("EMPTY_CHOICE_CONTENT", "Choice content cannot be empty"));
+                    return Response<List<ChoiceDto>>.Fail(ErrorType.EMPTY_CHOICE_CONTENT,
+                        new ErrorDetail("Choice content cannot be empty"));
             }
 
             var choices = choicesDto.Select(choiceDto => new Choice
@@ -80,19 +81,18 @@ namespace ExaminantionSystem.Service
         
         public async Task<Response<ChoiceDto>> UpdateChoiceAsync(int choiceId, UpdateChoiceDto dto, int currentUserId)
         {
-            try
-            {
+           
                 var choice = await _choiceRepository.GetByIdAsync(choiceId);
                 if (choice == null)
-                    return Response<ChoiceDto>.Fail(ErrorType.NotFound,
-                        new ErrorDetail("CHOICE_NOT_FOUND", "Choice not found"));
+                    return Response<ChoiceDto>.Fail(ErrorType.CHOICE_NOT_FOUND,
+                        new ErrorDetail( "Choice not found"));
 
                 var question = await _questionRepository.GetByIdAsync(choice.QuestionId);
                 var course = await _courseRepository.GetByIdAsync(question.CourseId);
 
                 if (course.InstructorId != currentUserId)
-                    return Response<ChoiceDto>.Fail(ErrorType.Forbidden,
-                        new ErrorDetail("ACCESS_DENIED", "You can only update choices for your own questions"));
+                    return Response<ChoiceDto>.Fail(ErrorType.ACCESS_DENIED,
+                        new ErrorDetail("You can only update choices for your own questions"));
 
                 // If setting this choice as correct, ensure no other correct choices exist
                 if (dto.IsCorrect)
@@ -132,29 +132,21 @@ namespace ExaminantionSystem.Service
                 };
 
                 return Response<ChoiceDto>.Success(result);
-            }
-            catch (Exception ex)
-            {
-                return Response<ChoiceDto>.Fail(ErrorType.Critical,
-                    new ErrorDetail("UPDATE_CHOICE_ERROR", "Failed to update choice", ex.Message));
-            }
         }
 
         public async Task<Response<bool>> DeleteChoiceAsync(int choiceId, int currentUserId)
         {
-            try
-            {
                 var choice = await _choiceRepository.GetByIdAsync(choiceId);
                 if (choice == null || choice.IsDeleted)
-                    return Response<bool>.Fail(ErrorType.NotFound,
-                        new ErrorDetail("CHOICE_NOT_FOUND", "Choice not found"));
+                    return Response<bool>.Fail(ErrorType.CHOICE_NOT_FOUND,
+                        new ErrorDetail( "Choice not found"));
 
                 var question = await _questionRepository.GetByIdAsync(choice.QuestionId);
                 var course = await _courseRepository.GetByIdAsync(question.CourseId);
 
                 if (course.InstructorId != currentUserId)
-                    return Response<bool>.Fail(ErrorType.Forbidden,
-                        new ErrorDetail("ACCESS_DENIED", "You can only delete choices from your own questions"));
+                    return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
+                        new ErrorDetail("You can only delete choices from your own questions"));
 
                 // Check if this is the only correct choice
                 if (choice.IsCorrect)
@@ -166,7 +158,7 @@ namespace ExaminantionSystem.Service
                         .CountAsync();
 
                     if (otherCorrectChoices == 0)
-                        return Response<bool>.Fail(ErrorType.BusinessRule,
+                        return Response<bool>.Fail(ErrorType.LAST_CORRECT_CHOICE,
                             new ErrorDetail("LAST_CORRECT_CHOICE", "Cannot delete the only correct choice"));
                 }
 
@@ -174,12 +166,8 @@ namespace ExaminantionSystem.Service
                 await _choiceRepository.SaveChangesAsync();
 
                 return Response<bool>.Success(true);
-            }
-            catch (Exception ex)
-            {
-                return Response<bool>.Fail(ErrorType.Critical,
-                    new ErrorDetail("DELETE_CHOICE_ERROR", "Failed to delete choice", ex.Message));
-            }
+            
+
         }
 
 

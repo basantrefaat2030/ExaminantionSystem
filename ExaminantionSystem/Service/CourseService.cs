@@ -2,6 +2,7 @@
 using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Course;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
+using ExaminantionSystem.Entities.Enums.Errors;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Wrappers;
 using ExaminantionSystem.Infrastructure.Repositories;
@@ -52,8 +53,8 @@ namespace ExaminantionSystem.Service
                 var instructor = await _instructorRepository.GetByIdAsync(dto.InstructorId);
                 if (instructor == null)
                     return Response<CourseDto>.Fail(
-                        ErrorType.NotFound,
-                        new ErrorDetail("INSTRUCTOR_NOT_FOUND", "Instructor not found", $"Instructor with ID {dto.InstructorId} not found", "instructorId")
+                        ErrorType.INSTRUCTOR_NOT_FOUND,
+                        new ErrorDetail("Instructor not found", $"Instructor with ID {dto.InstructorId} not found", "instructorId")
                     );
                 
 
@@ -61,8 +62,8 @@ namespace ExaminantionSystem.Service
                 var titleExists = await _courseRepository.CourseTitleExistsAsync(dto.Title, dto.InstructorId);
                 if (titleExists)
                     return Response<CourseDto>.Fail(
-                        ErrorType.Conflict,
-                        new ErrorDetail("COURSE_TITLE_EXISTS", "Course title exists", $"Course with title '{dto.Title}' already exists", "title")
+                        ErrorType.COURSE_TITLE_EXISTS,
+                        new ErrorDetail("Course title exists", $"Course with title '{dto.Title}' already exists", "title")
                     );
 
 
@@ -85,24 +86,20 @@ namespace ExaminantionSystem.Service
             if (course == null)
             
                 return Response<bool>.Fail(
-                    ErrorType.NotFound,
-                    new ErrorDetail("COURSE_NOT_FOUND", "Course not found", $"Course with ID {courseId} not found"));
-            
-            
+                    ErrorType.COURSE_NOT_FOUND, new ErrorDetail("Course not found", $"Course with ID {courseId} not found"));
+
 
             var hasEnrollments = await _courseRepository.CourseHasActiveEnrollmentsAsync(courseId);
             if (hasEnrollments)
 
-                return Response<bool>.Fail(ErrorType.BusinessRule,
-                    new ErrorDetail("COURSE_HAS_ENROLLMENTS", "Course has active enrollments", $"Cannot delete course because it has active enrollments")
+                return Response<bool>.Fail(ErrorType.COURSE_HAS_ENROLLMENTS, new ErrorDetail("Course has active enrollments", $"Cannot delete course because it has active enrollments")
                 );
 
 
             var hasExams = await _courseRepository.CourseHasExamsAsync(courseId);
             if (hasExams)
 
-                return Response<bool>.Fail(ErrorType.BusinessRule,
-                    new ErrorDetail("COURSE_HAS_EXAMS", "Course has exams", $"Cannot delete course because it has associated exams")
+                return Response<bool>.Fail(ErrorType.COURSE_HAS_EXAMS, new ErrorDetail( "Course has exams", $"Cannot delete course because it has associated exams")
                 );
 
             await _courseRepository.DeleteAsync(courseId);
@@ -118,8 +115,8 @@ namespace ExaminantionSystem.Service
                 if (course == null)
                 {
                     return Response<CourseDto>.Fail(
-                        ErrorType.NotFound,
-                        new ErrorDetail("COURSE_NOT_FOUND", "Course not found", $"Course with ID {dto.courseId} not found")
+                        ErrorType.COURSE_NOT_FOUND,
+                        new ErrorDetail("Course not found", $"Course with ID {dto.courseId} not found")
                     );
                 }
 
@@ -128,8 +125,8 @@ namespace ExaminantionSystem.Service
                 if (titleExists)
                 {
                     return Response<CourseDto>.Fail(
-                        ErrorType.Conflict,
-                        new ErrorDetail("COURSE_TITLE_EXISTS", "Course title exists", $"Course with title '{dto.Title}' already exists", "title")
+                        ErrorType.COURSE_TITLE_EXISTS,
+                        new ErrorDetail("Course title exists", $"Course with title '{dto.Title}' already exists", "title")
                     );
                 }
 
@@ -163,8 +160,8 @@ namespace ExaminantionSystem.Service
                 if (instructor == null)
                 {
                     return Response<PagedResponse<CourseInformationDto>>.Fail(
-                        ErrorType.NotFound,
-                        new ErrorDetail("INSTRUCTOR_NOT_FOUND", "Instructor not found", $"Instructor with ID {currentUserId} not found")
+                        ErrorType.INSTRUCTOR_NOT_FOUND,
+                        new ErrorDetail("Instructor not found", $"Instructor with ID {currentUserId} not found")
                     );
                 }
             }
@@ -195,8 +192,8 @@ namespace ExaminantionSystem.Service
                 if (course == null)
                 {
                     return Response<CourseDetailsDto>.Fail(
-                        ErrorType.NotFound,
-                        new ErrorDetail("COURSE_NOT_FOUND", "Course not found", $"Course with ID {courseId} not found")
+                        ErrorType.COURSE_NOT_FOUND,
+                        new ErrorDetail("Course not found", $"Course with ID {courseId} not found")
                     );
                 }
 
@@ -221,12 +218,12 @@ namespace ExaminantionSystem.Service
                 // Check course ownership
                 var course = await _courseRepository.GetByIdAsync(courseId);
                 if (course == null)
-                    return Response<List<QuestionPoolDto>>.Fail(ErrorType.NotFound,
-                        new ErrorDetail("COURSE_NOT_FOUND", "Course not found"));
+                    return Response<List<QuestionPoolDto>>.Fail(ErrorType.COURSE_NOT_FOUND,
+                        new ErrorDetail("Course not found"));
 
                 if (course.InstructorId != currentUserId)
-                    return Response<List<QuestionPoolDto>>.Fail(ErrorType.Forbidden,
-                        new ErrorDetail("ACCESS_DENIED", "You can only access questions from your own courses"));
+                    return Response<List<QuestionPoolDto>>.Fail(ErrorType.ACCESS_DENIED,
+                        new ErrorDetail( "You can only access questions from your own courses"));
 
                 // Get all questions for this course with their choices
                 var questions = await _questionRepository.GetAll(q => q.CourseId == courseId)

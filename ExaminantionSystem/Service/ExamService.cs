@@ -1,5 +1,7 @@
-﻿using ExaminantionSystem.Entities.Dtos.Choice;
+﻿
 using ExaminantionSystem.Entities.Dtos.Exam;
+using ExaminantionSystem.Entities.Enums.Errors;
+using ExaminantionSystem.Entities.Errors;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Shared;
 using ExaminantionSystem.Entities.Wrappers;
@@ -40,12 +42,12 @@ namespace ExaminantionSystem.Service
 
             var course = await _courseRepository.GetByIdAsync(dto.CourseId);
             if (course == null)
-                return Response<ExamDto>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("COURSE_NOT_FOUND", "Course not found"));
+                return Response<ExamDto>.Fail(ErrorType.COURSE_NOT_FOUND,
+                    new ErrorDetail("Course not found"));
 
             if (course.InstructorId != currentUserId)
-                return Response<ExamDto>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("ACCESS_DENIED", "You can only create exams for your own courses"));
+                return Response<ExamDto>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only create exams for your own courses"));
 
             // For final exams, check if one already exists
             if (dto.Type == ExamType.Final)
@@ -53,8 +55,8 @@ namespace ExaminantionSystem.Service
                 var existingFinalExam = _examRepository.GetAll(e => e.CourseId == dto.CourseId && e.ExamType == ExamType.Final).ToList();
 
                 if (existingFinalExam != null)
-                    return Response<ExamDto>.Fail(ErrorType.Conflict,
-                        new ErrorDetail("FINAL_EXAM_EXISTS", "A final exam already exists for this course"));
+                    return Response<ExamDto>.Fail(ErrorType.FINAL_EXAM_EXISTS,
+                        new ErrorDetail("A final exam already exists for this course"));
             }
 
             var exam = new Exam
@@ -95,17 +97,17 @@ namespace ExaminantionSystem.Service
             // Get exam
             var exam = await _examRepository.GetByIdAsync(examDto.ExamId);
             if (exam == null)
-                return Response<ExamDto>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("EXAM_NOT_FOUND", "Exam not found"));
+                return Response<ExamDto>.Fail(ErrorType.EXAM_NOT_FOUND,
+                    new ErrorDetail("Exam not found"));
 
             if (exam.StartDate > DateTime.Now)
-                return Response<ExamDto>.Fail(ErrorType.BusinessRule,
-                    new ErrorDetail("EXAM_ALREADY_STARTED", "Cannot update an exam that has already started"));
+                return Response<ExamDto>.Fail(ErrorType.EXAM_ALREADY_STARTED,
+                    new ErrorDetail( "Cannot update an exam that has already started"));
 
             var course = await _courseRepository.GetByIdAsync(exam.CourseId);
             if (course.InstructorId != currentUserId)
-                return Response<ExamDto>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("ACCESS_DENIED", "You can only update your own exams"));
+                return Response<ExamDto>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only update your own exams"));
 
             // Update exam
             exam.Title = examDto.Title.Trim();
@@ -137,20 +139,20 @@ namespace ExaminantionSystem.Service
             var exam = await _examRepository.GetByIdAsync(examId);
             if (exam == null || exam.IsDeleted)
                 return Response<bool>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("EXAM_NOT_FOUND", "Exam not found"));
+                    new ErrorDetail(ErrorCode.EXAM_NOT_FOUND, "Exam not found"));
 
             // Check ownership
             var course = await _courseRepository.GetByIdAsync(exam.CourseId);
             if (course.InstructorId != currentUserId)
                 return Response<bool>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("ACCESS_DENIED", "You can only delete your own exams"));
+                    new ErrorDetail(ErrorCode.ACCESS_DENIED, "You can only delete your own exams"));
 
             // Check if exam has student attempts
             var hasAttempts = await _examRepository.IsExamHasSubmissionsAsync(examId);
 
             if (hasAttempts)
                 return Response<bool>.Fail(ErrorType.BusinessRule,
-                    new ErrorDetail("EXAM_HAS_ATTEMPTS", "Cannot delete exam with student attempts"));
+                    new ErrorDetail(ErrorCode.EXAM_HAS_ATTEMPTS, "Cannot delete exam with student attempts"));
 
             await _examRepository.DeleteAsync(examId);
             await _examRepository.SaveChangesAsync();
@@ -167,14 +169,14 @@ namespace ExaminantionSystem.Service
                 var exam = await _examRepository.GetByIdAsync(examId);
                 if (exam == null)
                     return Response<ExamWithQuestionsDto>.Fail(ErrorType.NotFound,
-                        new ErrorDetail("EXAM_NOT_FOUND", "Exam not found"));
+                        new ErrorDetail(ErrorCode.EXAM_NOT_FOUND, "Exam not found"));
 
                 // Get all questions for this course
                 var questions = await _questionRepository.GetAll(q => q.CourseId == exam.CourseId).ToListAsync();
 
                 if (questions.Count < questionsNumber)
                     return Response<ExamWithQuestionsDto>.Fail(ErrorType.BusinessRule,
-                        new ErrorDetail("INVALID_QUESTIONNUMBER", "Not enough questions available for auto-generation"));
+                        new ErrorDetail(ErrorCode.INVALID_QUESTION_NUMBER, "Not enough questions available for auto-generation"));
 
                 // Balance questions by level (40% simple, 40% medium, 20% hard)
                 var simpleQuestions = questions.Where(q => q.QuestionLevel == QuestionLevel.Easy).ToList();
@@ -239,7 +241,7 @@ namespace ExaminantionSystem.Service
                 var exam = await _examRepository.GetByIdAsync(examId);
                 if (exam == null)
                     return Response<ExamWithQuestionsDto>.Fail(ErrorType.NotFound,
-                        new ErrorDetail("EXAM_NOT_FOUND", "Exam not found"));
+                        new ErrorDetail(ErrorCode.EXAM_NOT_FOUND, "Exam not found"));
 
                 // Get course info
                 var course = await _courseRepository.GetByIdAsync(exam.CourseId);

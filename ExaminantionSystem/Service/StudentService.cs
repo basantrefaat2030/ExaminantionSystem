@@ -67,7 +67,7 @@ namespace ExaminantionSystem.Service
                     : "You already have a pending enrollment request for this course";
 
                 return Response<StudentEnrollmentDto>.Fail(ErrorType.Conflict,
-                    new ErrorDetail("ENROLLMENT_EXISTS", errorMessage));
+                    new ErrorDetail("ENROLLMENT_EXIST", errorMessage));
             }
 
             var enrollment = new StudentCourse
@@ -106,7 +106,7 @@ namespace ExaminantionSystem.Service
         public async Task<Response<bool>> CancelEnrollmentRequestAsync(int enrollmentId, int studentId)
         {
             var enrollment = await _studentCourseRepository.GetByIdAsync(enrollmentId);
-            if (enrollment == null || enrollment.IsDeleted)
+            if (enrollment == null)
                 return Response<bool>.Fail(ErrorType.NotFound,
                     new ErrorDetail("ENROLLMENT_NOT_FOUND", "Enrollment request not found"));
 

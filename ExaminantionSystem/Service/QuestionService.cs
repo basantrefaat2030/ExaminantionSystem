@@ -1,6 +1,7 @@
 ﻿using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
 using ExaminantionSystem.Entities.Enums;
+using ExaminantionSystem.Entities.Enums.Errors;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Wrappers;
 using ExaminantionSystem.Infrastructure.Repositories;
@@ -216,8 +217,6 @@ namespace ExaminantionSystem.Service
 
         private async Task<Response<List<ChoiceDto>>> CreateChoicesForQuestionAsync(List<CreateChoiceDto> choicesDto, int questionId, int currentUserId)
         {
-            try
-            {
                 var choices = choicesDto.Select(choiceDto => new Choice
                 {
                     Text = choiceDto.Text.Trim(),
@@ -239,19 +238,17 @@ namespace ExaminantionSystem.Service
                 }).ToList();
 
                 return Response<List<ChoiceDto>>.Success(choiceDtos);
-            }
-            catch (Exception ex)
-            {
-                return Response<List<ChoiceDto>>.Fail(ErrorType.Critical,
-                    new ErrorDetail("CREATE_CHOICES_ERROR", "Failed to create choices", ex.Message));
-            }
+            
         }
 
         private async Task<Response<List<ChoiceDto>>> GetChoicesForQuestionAsync(int questionId, int currentUserId)
         {
-            try
-            {
-                var choices = await _choiceRepository.GetAll()
+            var question = await _questionRepository.GetByIdAsync(questionId);
+            if (question == null)
+                return Response<QuestionDto>.Fail(ErrorType.NotFound,
+                    new ErrorDetail("QUESTION_NOT_FOUND", "Question not found"));
+
+            var choices = await _choiceRepository.GetAll()
                     .Where(c => c.QuestionId == questionId && !c.IsDeleted)
                     .OrderBy(c => c.Id)
                     .ToListAsync();
@@ -266,12 +263,7 @@ namespace ExaminantionSystem.Service
                 }).ToList();
 
                 return Response<List<ChoiceDto>>.Success(choiceDtos);
-            }
-            catch (Exception ex)
-            {
-                return Response<List<ChoiceDto>>.Fail(ErrorType.Critical,
-                    new ErrorDetail("GET_CHOICES_ERROR", "Failed to retrieve choices", ex.Message));
-            }
+
         }
 
 

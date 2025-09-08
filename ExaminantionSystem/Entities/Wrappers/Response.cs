@@ -1,4 +1,6 @@
-﻿namespace ExaminantionSystem.Entities.Wrappers
+﻿using ExaminantionSystem.Entities.Enums.Errors;
+
+namespace ExaminantionSystem.Entities.Wrappers
 {
     public class Response<T>  
     {
