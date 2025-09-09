@@ -9,6 +9,7 @@
         COURSE_HAS_EXAMS,
         COURSE_STATUS_ERROR,
         NOT_COURSE_OWNER,
+        INVALID_ENROLLMENT_STATUS,
 
         //instructor
         INSTRUCTOR_NOT_FOUND,

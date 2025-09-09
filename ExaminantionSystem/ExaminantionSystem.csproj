@@ -20,7 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Entities\Dtos\Exam\MappingProfile\" />
     <Folder Include="Entities\ViewModels\Choice\" />
     <Folder Include="Entities\ViewModels\Instructor\" />
     <Folder Include="Entities\ViewModels\Exam\" />

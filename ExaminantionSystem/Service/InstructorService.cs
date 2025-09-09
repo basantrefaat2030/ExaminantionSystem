@@ -1,8 +1,10 @@
-﻿using ExaminantionSystem.Entities.Dtos.Choice;
-using ExaminantionSystem.Entities.Dtos.Courcse;
+﻿
+using AutoMapper;
+using ExaminantionSystem.Entities.Dtos.Course;
 using ExaminantionSystem.Entities.Dtos.Exam;
 using ExaminantionSystem.Entities.Dtos.Student;
 using ExaminantionSystem.Entities.Enums;
+using ExaminantionSystem.Entities.Enums.Errors;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Shared;
 using ExaminantionSystem.Entities.Wrappers;
@@ -23,6 +25,7 @@ namespace ExaminantionSystem.Service
         private readonly ExamRepository _examRepository;
         private readonly Repository<ExamResult> _examResultRepository;
         private readonly ChoiceRepository _choiceRepository;
+        private readonly IMapper _mapper;
 
         // private readonly InstructorRepository _instructorRepository;
 
@@ -33,7 +36,8 @@ namespace ExaminantionSystem.Service
             StudentRepository studentRepository,
             Repository<ExamQuestion> examQuestionRepository,
             ExamRepository examRepository,
-            QuestionRepository questionRepository)
+            QuestionRepository questionRepository,
+            IMapper mapper)
         {
             _studentCourseRepository = studentCourseRepository;
             _courseRepository = courseRepository;
@@ -43,6 +47,7 @@ namespace ExaminantionSystem.Service
             _questionRepository = questionRepository;
             _examResultRepository = examResultRepository;
             _choiceRepository = choiceRepository;
+            _mapper = mapper;
             // _instructorRepository = instructorRepository;
         }
 
@@ -51,19 +56,19 @@ namespace ExaminantionSystem.Service
         {
             var enrollment = await _studentCourseRepository.GetByIdAsync(enrollmentId);
             if (enrollment == null)
-                return Response<StudentCourseDto>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("ENROLLMENT_NOT_FOUND", "Enrollment request not found"));
+                return Response<StudentCourseDto>.Fail(ErrorType.ENROLLMENT_NOT_FOUND,
+                    new ErrorDetail("Enrollment request not found"));
 
             // Check if instructor owns the course
             var course = await _courseRepository.GetByIdAsync(enrollment.CourseId);
             if (course.InstructorId != currenUserId)
-                return Response<StudentCourseDto>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("ACCESS_DENIED", "You can only manage enrollments for your own courses"));
+                return Response<StudentCourseDto>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only manage enrollments for your own courses"));
 
             // Only pending requests can be approved
             if (enrollment.Status != RequestStatus.Pending)
-                return Response<StudentCourseDto>.Fail(ErrorType.BusinessRule,
-                    new ErrorDetail("INVALID_STATUS", "Only pending requests can be approved"));
+                return Response<StudentCourseDto>.Fail(ErrorType.INVALID_ENROLLMENT_STATUS,
+                    new ErrorDetail("Only pending requests can be approved"));
 
             enrollment.Status = RequestStatus.Approved;
             enrollment.EnrollmentDate = DateTime.UtcNow;
@@ -75,17 +80,19 @@ namespace ExaminantionSystem.Service
 
             var student = await _studentRepository.GetByIdAsync(enrollment.StudentId);
             var courseInfo = await _courseRepository.GetByIdAsync(enrollment.CourseId);
-            var result = new StudentCourseDto
-            {
-                Id = enrollment.Id,
-                StudentId = enrollment.StudentId,
-                StudentName = student.FullName,
-                CourseId = enrollment.CourseId,
-                CourseTitle = courseInfo.Title,
-                Status = enrollment.Status,
-                RequestDate = enrollment.RequestDate,
-                EnrollmentDate = enrollment.EnrollmentDate,
-            };
+            //var result = new StudentCourseDto
+            //{
+            //    Id = enrollment.Id,
+            //    StudentId = enrollment.StudentId,
+            //    StudentName = student.FullName,
+            //    CourseId = enrollment.CourseId,
+            //    CourseTitle = courseInfo.Title,
+            //    Status = enrollment.Status,
+            //    RequestDate = enrollment.RequestDate,
+            //    EnrollmentDate = enrollment.EnrollmentDate,
+            //};
+
+            var result = _mapper.Map<StudentCourseDto>(enrollment);
             return Response<StudentCourseDto>.Success(result);
         }
 
@@ -94,19 +101,19 @@ namespace ExaminantionSystem.Service
 
             var enrollment = await _studentCourseRepository.GetByIdAsync(enrollmentId);
             if (enrollment == null)
-                return Response<StudentCourseDto>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("ENROLLMENT_NOT_FOUND", "Enrollment request not found"));
+                return Response<StudentCourseDto>.Fail(ErrorType.ENROLLMENT_NOT_FOUND,
+                    new ErrorDetail( "Enrollment request not found"));
 
             // Check if instructor owns the course
             var course = await _courseRepository.GetByIdAsync(enrollment.CourseId);
             if (course.InstructorId != currentuserId)
-                return Response<StudentCourseDto>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("ACCESS_DENIED", "You can only manage enrollments for your own courses"));
+                return Response<StudentCourseDto>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only manage enrollments for your own courses"));
 
             // Only pending requests can be rejected
             if (enrollment.Status != RequestStatus.Pending)
-                return Response<StudentCourseDto>.Fail(ErrorType.BusinessRule,
-                    new ErrorDetail("INVALID_STATUS", "Only pending requests can be rejected"));
+                return Response<StudentCourseDto>.Fail(ErrorType.INVALID_ENROLLMENT_STATUS,
+                    new ErrorDetail( "Only pending requests can be rejected"));
 
             enrollment.Status = RequestStatus.Rejected;
             enrollment.EnrollmentDate = null; // Clear enrollment date for rejected requests
@@ -122,13 +129,14 @@ namespace ExaminantionSystem.Service
             {
                 Id = enrollment.Id,
                 StudentId = enrollment.StudentId,
-                StudentName = student.FullName,
+                StudentName = enrollment.Student.FullName,
                 CourseId = enrollment.CourseId,
                 CourseTitle = courseInfo.Title,
                 Status = enrollment.Status,
                 RequestDate = enrollment.RequestDate,
                 EnrollmentDate = enrollment.EnrollmentDate,
             };
+           
             return Response<StudentCourseDto>.Success(result);
         }
 
@@ -139,12 +147,12 @@ namespace ExaminantionSystem.Service
             // Check course ownership
             var course = await _courseRepository.GetByIdAsync(courseId);
             if (course == null || course.IsDeleted)
-                return Response<PagedResponse<StudentCourseDto>>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("COURSE_NOT_FOUND", "Course not found"));
+                return Response<PagedResponse<StudentCourseDto>>.Fail(ErrorType.COURSE_NOT_FOUND,
+                    new ErrorDetail("Course not found"));
 
             if (course.InstructorId != instructorId)
-                return Response<PagedResponse<StudentCourseDto>>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("ACCESS_DENIED", "You can only view enrollments for your own courses"));
+                return Response<PagedResponse<StudentCourseDto>>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only view enrollments for your own courses"));
 
             var query = _studentCourseRepository.GetAll()
                 .Where(e => e.CourseId == courseId);
@@ -190,8 +198,8 @@ namespace ExaminantionSystem.Service
             // Get exam
             var exam = await _examRepository.GetByIdAsync(manualExam.examId);
             if (exam == null)
-                return Response<ManualExamDto>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("EXAM_NOT_FOUND", "Exam not found"));
+                return Response<ManualExamDto>.Fail(ErrorType.EXAM_NOT_FOUND,
+                    new ErrorDetail( "Exam not found"));
 
             // Verify all questions belong to same course
             var QuestionsCourse = await _questionRepository
@@ -199,8 +207,8 @@ namespace ExaminantionSystem.Service
                 .ToListAsync();
 
             if (QuestionsCourse.Count != manualExam.questionIds.Count)
-                return Response<ManualExamDto>.Fail(ErrorType.Validation,
-                    new ErrorDetail("INVALID_QUESTIONS", "Some questions don't belong to your course or don't exist"));
+                return Response<ManualExamDto>.Fail(ErrorType.INVALID_QUESTIONS,
+                    new ErrorDetail("Some questions don't belong to your course or don't exist"));
 
 
             // Check for duplicates by comparing counts
@@ -212,9 +220,8 @@ namespace ExaminantionSystem.Service
                  .Distinct()
                  .ToList();
 
-                return Response<ManualExamDto>.Fail(ErrorType.Validation,
-                    new ErrorDetail("DUPLICATE_QUESTIONS_IN_REQUEST",
-                        $"Duplicate question IDs in request: {string.Join(", ", duplicateQuestionIds)}"));
+                return Response<ManualExamDto>.Fail(ErrorType.DUPLICATE_QUESTIONS_IN_REQUEST,
+                    new ErrorDetail($"Duplicate question IDs in request: {string.Join(", ", duplicateQuestionIds)}"));
             }
 
 
@@ -282,11 +289,11 @@ namespace ExaminantionSystem.Service
         {
                 var course = await _courseRepository.GetByIdAsync(courseId);
                 if (course == null)
-                    return Response<PagedResponse<StudentExamResultDto>>.Fail(ErrorType.NotFound,
+                    return Response<PagedResponse<StudentExamResultDto>>.Fail(ErrorType.COURSE_NOT_FOUND,
                         new ErrorDetail("COURSE_NOT_FOUND", "Course not found"));
 
                 if (course.InstructorId != currentUserId)
-                    return Response<PagedResponse<StudentExamResultDto>>.Fail(ErrorType.Forbidden,
+                    return Response<PagedResponse<StudentExamResultDto>>.Fail(ErrorType.ACCESS_DENIED,
                         new ErrorDetail("ACCESS_DENIED", "You can only view scores for your own courses"));
 
 
