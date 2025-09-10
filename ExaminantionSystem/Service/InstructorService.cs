@@ -1,5 +1,6 @@
 ﻿
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using ExaminantionSystem.Entities.Dtos.Course;
 using ExaminantionSystem.Entities.Dtos.Exam;
 using ExaminantionSystem.Entities.Dtos.Student;
@@ -78,21 +79,10 @@ namespace ExaminantionSystem.Service
             await _studentCourseRepository.UpdateAsync(enrollment);
             await _studentCourseRepository.SaveChangesAsync();
 
-            var student = await _studentRepository.GetByIdAsync(enrollment.StudentId);
-            var courseInfo = await _courseRepository.GetByIdAsync(enrollment.CourseId);
-            //var result = new StudentCourseDto
-            //{
-            //    Id = enrollment.Id,
-            //    StudentId = enrollment.StudentId,
-            //    StudentName = student.FullName,
-            //    CourseId = enrollment.CourseId,
-            //    CourseTitle = courseInfo.Title,
-            //    Status = enrollment.Status,
-            //    RequestDate = enrollment.RequestDate,
-            //    EnrollmentDate = enrollment.EnrollmentDate,
-            //};
 
-            var result = _mapper.Map<StudentCourseDto>(enrollment);
+            var result = await _studentCourseRepository.GetAll(e => e.Id == enrollmentId)
+            .ProjectTo<StudentCourseDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
             return Response<StudentCourseDto>.Success(result);
         }
 
@@ -123,20 +113,10 @@ namespace ExaminantionSystem.Service
             await _studentCourseRepository.SaveChangesAsync();
 
             //Mapping
-            var student = await _studentRepository.GetByIdAsync(enrollment.StudentId);
-            var courseInfo = await _courseRepository.GetByIdAsync(enrollment.CourseId);
-            var result = new StudentCourseDto
-            {
-                Id = enrollment.Id,
-                StudentId = enrollment.StudentId,
-                StudentName = enrollment.Student.FullName,
-                CourseId = enrollment.CourseId,
-                CourseTitle = courseInfo.Title,
-                Status = enrollment.Status,
-                RequestDate = enrollment.RequestDate,
-                EnrollmentDate = enrollment.EnrollmentDate,
-            };
-           
+            var result = await _studentCourseRepository.GetAll(e => e.Id == enrollmentId)
+             .ProjectTo<StudentCourseDto>(_mapper.ConfigurationProvider)
+             .FirstOrDefaultAsync();
+
             return Response<StudentCourseDto>.Success(result);
         }
 
@@ -164,28 +144,13 @@ namespace ExaminantionSystem.Service
             // var enrollmentList = query.
 
             var totalRecords = await query.CountAsync();
-            var enrollments = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
 
-            var InstructorRequests = new List<StudentCourseDto>();
-            foreach (var enrollment in enrollments)
-            {
-                var student = await _studentRepository.GetByIdAsync(enrollment.StudentId);
-                var courseInfo = await _courseRepository.GetByIdAsync(enrollment.CourseId);
-                InstructorRequests.Add(new StudentCourseDto
-                {
-                    Id = enrollment.Id,
-                    StudentId = enrollment.StudentId,
-                    StudentName = student.FullName,
-                    CourseId = enrollment.CourseId,
-                    CourseTitle = courseInfo.Title,
-                    Status = enrollment.Status,
-                    RequestDate = enrollment.RequestDate,
-                    EnrollmentDate = enrollment.EnrollmentDate,
-                });
-            }
+            var InstructorRequests = await query
+             .ProjectTo<StudentCourseDto>(_mapper.ConfigurationProvider) 
+             .Skip((pageNumber - 1) * pageSize)
+             .Take(pageSize)
+             .ToListAsync();
+
             var pagedResponse = new PagedResponse<StudentCourseDto>(InstructorRequests, pageNumber, pageSize, totalRecords);
             return Response<PagedResponse<StudentCourseDto>>.Success(pagedResponse);
         }
@@ -302,29 +267,11 @@ namespace ExaminantionSystem.Service
                 .OrderByDescending(er => er.SubmittedAt);
 
             var totalRecords = await query.CountAsync();
-            var examResults = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            // Manual mapping
-            var result = new List<StudentExamResultDto>();
-            foreach (var examResult in examResults)
-            {
-                var studentInfo = await _studentRepository.GetByIdAsync(examResult.StudentId);
-                var examInfo = await _examRepository.GetByIdAsync(examResult.ExamId);
-
-                result.Add(new StudentExamResultDto
-                {
-                    StudentId = examResult.StudentId,
-                    StudentName =  studentInfo.FullName,
-                    ExamId = examResult.ExamId,
-                    ExamTitle = examInfo.Title,
-                    ExamType = examInfo.ExamType.ToString(),
-                    Score = examResult.Score,
-                    SubmittedAt = examResult.SubmittedAt.Value
-                });
-            }
+            var result = await query
+            .ProjectTo<StudentExamResultDto>(_mapper.ConfigurationProvider) // Single efficient query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
             var pagedResponse = new PagedResponse<StudentExamResultDto>(result, pageNumber, pageSize, totalRecords);
             return Response<PagedResponse<StudentExamResultDto>>.Success(pagedResponse);

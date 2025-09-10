@@ -16,7 +16,7 @@ namespace ExaminantionSystem.Entities.Dtos.Ouestion
             public string InstructorName { get; set; }
             public string CourseTitle { get; set; }     
 
-            public List<ChoiceDto> Choices { get; set; }
+           // public List<ChoiceDto> Choices { get; set; }
 
     }
 }
