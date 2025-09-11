@@ -14,13 +14,13 @@ namespace ExaminantionSystem.Infrastructure.Configurations
                 .HasOne(er => er.Student)
                 .WithMany(s => s.ExamResults)
                 .HasForeignKey(er => er.StudentId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
 
             builder
                 .HasOne(er => er.Exam)
                 .WithMany(e => e.ExamResults)
                 .HasForeignKey(er => er.ExamId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

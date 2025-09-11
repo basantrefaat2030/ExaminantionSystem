@@ -1,4 +1,6 @@
-﻿namespace ExaminantionSystem.Entities.Models
+﻿using ExaminantionSystem.Entities.Enums;
+
+namespace ExaminantionSystem.Entities.Models
 {
     public class User :BaseEntity
     {
@@ -9,8 +11,8 @@
         public string? Country {  get; set; }
         public string? City { get; set; }
         public string EmailAddress { get; set; }
-        public string? PoheNumber { get; set; }
+        public string? PhoneNumber { get; set; }
         public string PasswordHash { get; set; }
-
+        public Role Role { get; set; } 
     }
 }

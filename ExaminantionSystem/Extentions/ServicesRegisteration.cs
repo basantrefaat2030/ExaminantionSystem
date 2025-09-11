@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using ExaminantionSystem.MappingProfile;
 using ExaminantionSystem.Entities.ViewModels.Course.MappingProfile;
 using ExaminantionSystem.Entities.Dtos.Course.MappingProfile;
+using ExaminantionSystem.Middleware;
 
 namespace ExaminantionSystem.Extentions
 {
@@ -18,20 +19,17 @@ namespace ExaminantionSystem.Extentions
             services.AddDbContext<ExaminationContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("ExaminationConnection"))
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
-                 .LogTo(Console.WriteLine, LogLevel.Information));
+                 .LogTo(Console.WriteLine, LogLevel.Information)
+                 .EnableSensitiveDataLogging(true));
 
             // Register all repositories
+            services.AddScoped(typeof(Repository<>));
             services.AddScoped<CourseRepository>();
             services.AddScoped<ExamRepository>();
             services.AddScoped<QuestionRepository>();
             services.AddScoped<ChoiceRepository>();
             services.AddScoped<InstructorRepository>();
             services.AddScoped<StudentRepository>();
-            services.AddScoped<Repository<ExamQuestion>>();
-            services.AddScoped<Repository<StudentCourse>>();
-            services.AddScoped<Repository<ExamResult>>();
-            services.AddScoped<Repository<StudentAnswer>>();
-
 
             // Register all services
             services.AddScoped<CourseService>();
@@ -47,6 +45,9 @@ namespace ExaminantionSystem.Extentions
             //registeraion automapper for controllers
             services.AddAutoMapper(typeof(GeneralMapping));
             services.AddAutoMapper(typeof(CourseMappingProfile));
+
+            // register middleware 
+            services.AddScoped<TransactionMiddleware>();
 
 
             return services;

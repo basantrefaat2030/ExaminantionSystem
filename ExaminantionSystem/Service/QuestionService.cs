@@ -16,21 +16,19 @@ namespace ExaminantionSystem.Service
         private readonly ChoiceRepository _choiceRepository;
         private readonly ExamRepository _examRepository;
         private readonly CourseRepository _courseRepository;
-        private readonly InstructorRepository _instructorRepository;
+        //private readonly InstructorRepository _instructorRepository;
         private readonly IMapper _mapper;
 
         public QuestionService(QuestionRepository questionRepository,
             ChoiceRepository choiceRepository,
             ExamRepository examRepository,
             CourseRepository courseRepository,
-            InstructorRepository instructorRepository,
             IMapper mapper)
         {
             _questionRepository = questionRepository;
             _choiceRepository = choiceRepository;
             _examRepository = examRepository;
             _courseRepository = courseRepository;
-            _instructorRepository = instructorRepository;
             _mapper = mapper;
         }
 

@@ -1,8 +1,11 @@
-﻿using ExaminantionSystem.Entities.Dtos.Courcse;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using ExaminantionSystem.Entities.Dtos.Course;
 using ExaminantionSystem.Entities.Dtos.Exam;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
 using ExaminantionSystem.Entities.Dtos.Student;
 using ExaminantionSystem.Entities.Enums;
+using ExaminantionSystem.Entities.Enums.Errors;
 using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.Wrappers;
 using ExaminantionSystem.Infrastructure.Repositories;
@@ -21,6 +24,7 @@ namespace ExaminantionSystem.Service
         private readonly Repository<ExamResult> _examResultRepository;
         private readonly ChoiceRepository _choiceRepository;
         private readonly QuestionRepository _questionRepository;
+        private readonly IMapper _mapper;
         public StudentService
          (
            Repository<StudentCourse> studentCourseRepository,
@@ -31,7 +35,8 @@ namespace ExaminantionSystem.Service
            ExamRepository examRepository,
            Repository<ExamResult> examResultRepository,
            ChoiceRepository choiceRepository,
-           QuestionRepository questionRepository)
+           QuestionRepository questionRepository,
+           IMapper mapper)
         {
             _studentCourseRepository = studentCourseRepository;
             _studentAnswerRepository = studentAnswerRepository;
@@ -42,6 +47,7 @@ namespace ExaminantionSystem.Service
             _examResultRepository = examResultRepository;
             _choiceRepository = choiceRepository;
             _questionRepository = questionRepository;
+            _mapper = mapper;
 
         }
 
@@ -52,8 +58,8 @@ namespace ExaminantionSystem.Service
             // Check if course exists
             var course = await _courseRepository.GetByIdAsync(courseId);
             if (course == null)
-                return Response<StudentEnrollmentDto>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("COURSE_NOT_FOUND", "Course not found"));
+                return Response<StudentEnrollmentDto>.Fail(ErrorType.COURSE_NOT_FOUND,
+                    new ErrorDetail("Course not found"));
 
             // Check if student already has a pending or approved request
             var existingEnrollment = await _studentCourseRepository
@@ -66,8 +72,8 @@ namespace ExaminantionSystem.Service
                     ? "You are already enrolled in this course"
                     : "You already have a pending enrollment request for this course";
 
-                return Response<StudentEnrollmentDto>.Fail(ErrorType.Conflict,
-                    new ErrorDetail("ENROLLMENT_EXIST", errorMessage));
+                return Response<StudentEnrollmentDto>.Fail(ErrorType.ENROLLMENT_EXIST,
+                    new ErrorDetail(errorMessage));
             }
 
             var enrollment = new StudentCourse
@@ -83,23 +89,9 @@ namespace ExaminantionSystem.Service
             await _studentCourseRepository.AddAsync(enrollment);
             await _studentCourseRepository.SaveChangesAsync();
 
-            // Manual mapping in the same function
-            var studentInfo = await _studentRepository.GetByIdAsync(enrollment.StudentId);
-            var courseInfo = await _courseRepository.GetByIdAsync(enrollment.CourseId);
-            var instructorInfo = await _instructorRepository.GetByIdAsync(courseInfo.InstructorId);
+            var result = await _studentCourseRepository.GetAll(e => e.Id == enrollment.Id).ProjectTo<StudentEnrollmentDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
 
-            var result = new StudentEnrollmentDto
-            {
-                Id = enrollment.Id,
-                StudentId = enrollment.StudentId,
-                StudentName = studentInfo.FullName,
-                CourseId = enrollment.CourseId,
-                CourseTitle = courseInfo.Title,
-                Status = enrollment.Status,
-                RequestDate = enrollment.RequestDate,
-                EnrollmentDate = enrollment.EnrollmentDate,
-                InstructorName = instructorInfo.FullName,
-            };
+
             return Response<StudentEnrollmentDto>.Success(result);
         }
 
@@ -107,18 +99,18 @@ namespace ExaminantionSystem.Service
         {
             var enrollment = await _studentCourseRepository.GetByIdAsync(enrollmentId);
             if (enrollment == null)
-                return Response<bool>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("ENROLLMENT_NOT_FOUND", "Enrollment request not found"));
+                return Response<bool>.Fail(ErrorType.ENROLLMENT_NOT_FOUND,
+                    new ErrorDetail("Enrollment request not found"));
 
             // Check ownership
             if (enrollment.StudentId != studentId)
-                return Response<bool>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("ACCESS_DENIED", "You can only cancel your own enrollment requests"));
+                return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only cancel your own enrollment requests"));
 
             // Only pending requests can be cancelled
             if (enrollment.Status != RequestStatus.Pending)
-                return Response<bool>.Fail(ErrorType.BusinessRule,
-                    new ErrorDetail("CANCEL_NOT_ALLOWED", "Only pending requests can be cancelled"));
+                return Response<bool>.Fail(ErrorType.CANCEL_NOT_ALLOWED,
+                    new ErrorDetail("Only pending requests can be cancelled"));
 
             enrollment.Status = RequestStatus.Cancelled;
             enrollment.UpdatedAt = DateTime.UtcNow;
@@ -148,28 +140,9 @@ namespace ExaminantionSystem.Service
                 .Take(pageSize)
                 .ToListAsync();
 
-            var studentEnrollments = new List<StudentEnrollmentDto>();
-            foreach (var enrollment in enrollments)
-            {
-                var studentInfo = await _studentRepository.GetByIdAsync(enrollment.StudentId);
-                var courseInfo = await _courseRepository.GetByIdAsync(enrollment.CourseId);
-                var instructorInfo = await _instructorRepository.GetByIdAsync(enrollment.CourseId);
-
-                studentEnrollments.Add(new StudentEnrollmentDto
-                {
-                    Id = enrollment.Id,
-                    StudentId = enrollment.StudentId,
-                    StudentName = studentInfo.FullName,
-                    CourseId = enrollment.CourseId,
-                    CourseTitle = courseInfo.Title,
-                    Status = enrollment.Status,
-                    RequestDate = enrollment.RequestDate,
-                    EnrollmentDate = enrollment.EnrollmentDate,
-                    InstructorName = instructorInfo.FullName
-                });
-            }
-
+            var studentEnrollments = _mapper.Map<List<StudentEnrollmentDto>>(enrollments);
             var pagedResponse = new PagedResponse<StudentEnrollmentDto>(studentEnrollments, pageNumber, pageSize, totalRecords);
+
             return Response<PagedResponse<StudentEnrollmentDto>>.Success(pagedResponse);
 
 
@@ -182,22 +155,22 @@ namespace ExaminantionSystem.Service
         {
             var exam = await _examRepository.GetByIdAsync(examId);
             if (exam == null)
-                return Response<StudentExamDto>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("EXAM_NOT_FOUND", "Exam not found"));
+                return Response<StudentExamDto>.Fail(ErrorType.EXAM_NOT_FOUND,
+                    new ErrorDetail( "Exam not found"));
 
             // Check if student is enrolled in the course
             var isEnrolled = await _studentRepository.IsStudentEnrolledInCourseAsync(exam.CourseId, currenUserId);
 
             if (!isEnrolled)
-                return Response<StudentExamDto>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("NOT_ENROLLED", "You are not enrolled in this course"));
+                return Response<StudentExamDto>.Fail(ErrorType.NOT_ENROLLED,
+                    new ErrorDetail("You are not enrolled in this course"));
 
             // Check if student already has an active exam result
             var existingResult = await _studentRepository.IsStudentHasActiveExamAsync(examId, currenUserId);
 
             if (existingResult)
-                return Response<StudentExamDto>.Fail(ErrorType.Conflict,
-                    new ErrorDetail("EXAM_ALREADY_STARTED", "You have already started this exam"));
+                return Response<StudentExamDto>.Fail(ErrorType.EXAM_ALREADY_STARTED,
+                    new ErrorDetail( "You have already started this exam"));
 
             var examResult = new ExamResult
             {
@@ -211,20 +184,7 @@ namespace ExaminantionSystem.Service
             await _examResultRepository.SaveChangesAsync();
 
             // Manual mapping
-            var studentInfo = await _studentRepository.GetByIdAsync(currenUserId);
-            var courseInfo = await _courseRepository.GetByIdAsync(exam.CourseId);
-
-            var result = new StudentExamDto
-            {
-                ExamResultId = examResult.Id,
-                ExamId = examResult.ExamId,
-                ExamTitle = exam.Title,
-                StudentId = examResult.StudentId,
-                StudentName = studentInfo.FullName,
-                StartedAt = examResult.StartedAt.Value,
-                CourseName = courseInfo.Title,
-                Duration = exam.Duration
-            };
+            var result = await _examResultRepository.GetAll(er => er.Id == examResult.Id).ProjectTo<StudentExamDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
 
             return Response<StudentExamDto>.Success(result);
         }
@@ -235,12 +195,12 @@ namespace ExaminantionSystem.Service
 
             var examResult = await _studentRepository.StudentHasActiveExamAsync(answerDto.examId, currentUserId);
             if (examResult == null)
-                return Response<ExamResultDto>.Fail(ErrorType.NotFound,
-                    new ErrorDetail("EXAM_RESULT_NOT_FOUND", "Exam result not found"));
+                return Response<ExamResultDto>.Fail(ErrorType.EXAM_RESULT_NOT_FOUND,
+                    new ErrorDetail("Exam result not found"));
 
             if (examResult.StudentId != currentUserId)
-                return Response<ExamResultDto>.Fail(ErrorType.Forbidden,
-                    new ErrorDetail("ACCESS_DENIED", "You can only submit answers for your own exam"));
+                return Response<ExamResultDto>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only submit answers for your own exam"));
 
             //if (examResult.SubmittedAt != null)
             //    return Response<bool>.Fail(ErrorType.BusinessRule,
@@ -251,32 +211,26 @@ namespace ExaminantionSystem.Service
             // Check if time has expired
             var timeElapsed = DateTime.UtcNow - examResult.StartedAt.Value;
             if (timeElapsed.TotalMinutes > exam.Duration)
-                return Response<ExamResultDto>.Fail(ErrorType.BusinessRule,
-                    new ErrorDetail("EXAM_TIME_EXPIRED", "Exam time has expired"));
+                return Response<ExamResultDto>.Fail(ErrorType.EXAM_TIME_EXPIRED,
+                    new ErrorDetail("Exam time has expired"));
 
-            try
+            // Save student answers
+            var studentAnswers = _mapper.Map<List<StudentAnswer>>(answerDto.answers);
+            studentAnswers.ForEach(sa =>
             {
-                // Save student answers
-                var studentAnswers = answerDto.answers.Select(answer => new StudentAnswer
-                {
-                    ExamResultId = examResult.Id,
-                    QuestionId = answer.QuestionId,
-                    ChoiceId = answer.ChoiceId,
-                    CreatedBy = currentUserId
-                }).ToList();
+                sa.ExamResultId = examResult.Id;
+                sa.CreatedBy = currentUserId;
+            });
+            await _studentAnswerRepository.AddRangeAsync(studentAnswers);
+            await _studentAnswerRepository.SaveChangesAsync();
 
-                // Evaluate the exam
-                var evaluationResult = await EvaluateExamAsync(examResult.Id, currentUserId);
+            // Evaluate the exam
+            var evaluationResult = await EvaluateExamAsync(examResult.Id, currentUserId);
                 if (!evaluationResult.Succeeded)
                     throw new Exception("Failed to evaluate exam: " + string.Join(", ", evaluationResult.Error.Errors.Select(e => e.Detail)));
 
 
                 return evaluationResult;
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
 
         }
 
@@ -348,31 +302,14 @@ namespace ExaminantionSystem.Service
                         .SetProperty(c => c.SubmittedAt, DateTime.UtcNow));
             await _examResultRepository.SaveChangesAsync();
 
-            // Manual mapping for final result
-            var examResultInfo = await _examResultRepository.GetByIdAsync(examResultId);
 
-            var result = new ExamResultDto
-            {
-                examInfomationDto = new ExamInfomationDto()
-                {
-                    ExamId = examResultInfo.Exam.Id,
-                    ExamTitle = examResultInfo.Exam.Title,
-                    CourseName = examResultInfo.Exam.Course.Title
-                },
-                studentExamInformation = new StudentExamInformation()
-                {
-                    StudentId = examResultInfo.StudentId,
-                    StudentName = examResultInfo.Student.FullName
-                },
 
-                TotalScore = totalScore,
+            var examResult = await _examResultRepository.GetAll(er => er.Id == examResultId).ProjectTo<ExamResultDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
+            examResult.TotalScore = totalScore;
+            examResult.QuestionResults = questionResults;
 
-                ExamStartAt = examResultInfo.StartedAt.Value,
-                ExamCompletedAt = examResultInfo.SubmittedAt.Value,
-                QuestionResults = questionResults
-            };
+            return Response<ExamResultDto>.Success(examResult);
 
-            return Response<ExamResultDto>.Success(result);
         }
 
         #endregion

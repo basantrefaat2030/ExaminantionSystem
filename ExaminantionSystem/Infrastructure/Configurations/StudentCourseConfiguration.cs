@@ -15,12 +15,12 @@ namespace ExaminantionSystem.Infrastructure.Configurations
             builder.HasOne(sc => sc.Student)
                .WithMany(s => s.StudentCourses)
                .HasForeignKey(sc => sc.StudentId)
-               .OnDelete(DeleteBehavior.Restrict);
+               .OnDelete(DeleteBehavior.NoAction);
 
             builder.HasOne(sc => sc.Course)
                 .WithMany(c => c.Enrollments)
                 .HasForeignKey(sc => sc.CourseId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
 
         }
     }
