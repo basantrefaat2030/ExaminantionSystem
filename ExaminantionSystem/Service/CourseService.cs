@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Course;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
@@ -82,14 +83,22 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<bool>> DeleteCourseAsync(int courseId , int currentUserId)
         {
-            var course = await _courseRepository.GetByIdAsync(courseId);
-            if (course == null)
+            var courseInfo = await _courseRepository.GetAll()
+                 .Where(c => c.Id == courseId)
+                 .Select(c => new
+                 {
+                     Course = c,
+                     HasExams = c.Exams.Any( e => e.IsActive && !e.IsDeleted && e.StartDate <= DateTime.Now && e.EndDate >= DateTime.Now),
+                     IsOwner = c.InstructorId == currentUserId
+                 }).FirstOrDefaultAsync();
+
+            if (courseInfo == null)
             
                 return Response<bool>.Fail(
                     ErrorType.COURSE_NOT_FOUND, new ErrorDetail("Course not found", $"Course with ID {courseId} not found"));
 
 
-            if (course.InstructorId != currentUserId)
+            if (!courseInfo.IsOwner)
                 return Response<bool>.Fail(ErrorType.NOT_COURSE_OWNER,
                     new ErrorDetail("canot delete this course beacuse this course donot own this instructor"));
 
@@ -100,8 +109,7 @@ namespace ExaminantionSystem.Service
                     new ErrorDetail("Course has active enrollments", "Cannot delete course because it has active enrollments"));
 
 
-            var hasExams = await _courseRepository.CourseHasExamsAsync(courseId);
-            if (hasExams)
+            if (courseInfo.HasExams)
 
                 return Response<bool>.Fail(ErrorType.COURSE_HAS_EXAMS, 
                     new ErrorDetail("Course has exams", $"Cannot delete course because it has associated exams"));
@@ -118,9 +126,8 @@ namespace ExaminantionSystem.Service
                 var course = await _courseRepository.GetByIdTrackingAsync(dto.courseId);
                 if (course == null)
                 {
-                    return Response<CourseDto>.Fail(
-                        ErrorType.COURSE_NOT_FOUND,
-                        new ErrorDetail("Course not found", $"Course with ID {dto.courseId} not found")
+                    return Response<CourseDto>.Fail(ErrorType.COURSE_NOT_FOUND,
+                        new ErrorDetail($"Course with ID {dto.courseId} not found")
                     );
                 }
 
@@ -142,7 +149,7 @@ namespace ExaminantionSystem.Service
                     new ErrorDetail("Not the course owner", $"User {currentUserId} is not the owner of course {dto.Title}")
                 );
             }
-            _mapper.Map(dto, course);
+                _mapper.Map(dto, course);
                 course.UpdatedAt = DateTime.UtcNow;
 
                 await _courseRepository.UpdateAsync(course);
@@ -192,26 +199,29 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<CourseDetailsDto>> GetCourseDetailsAsync(int courseId)
         {
-                var course = await _courseRepository.GetByIdAsync(courseId);
-                if (course == null)
-                {
+            var courseDetailsInfo = await _courseRepository.GetAll(c => c.Id == courseId)
+            .Select(c => new CourseDetailsDto
+            {
+                Id = c.Id,
+                Title = c.Title,
+                Description = c.Description,
+                InstructorId = c.InstructorId,
+                InstructorName = c.Instructor.User.FullName
+            }).FirstOrDefaultAsync();
+
+         
+                if (courseDetailsInfo == null)
                     return Response<CourseDetailsDto>.Fail(
-                        ErrorType.COURSE_NOT_FOUND,
-                        new ErrorDetail("Course not found", $"Course with ID {courseId} not found")
-                    );
-                }
+                        ErrorType.COURSE_NOT_FOUND,new ErrorDetail( $"Course with ID {courseId} not found"));
+                
 
-                // Get enrollment statistics
                 var totalEnrollments = await _courseRepository.GetTotalEnrollmentsAsync(courseId);
-
-                // Get exam statistics
                 var totalExams = await _examRepository.GetTotalExam(courseId);
 
-                var courseDetails = _mapper.Map<CourseDetailsDto>(course);
-                courseDetails.TotalEnrollments = totalEnrollments;
-                courseDetails.TotalExams = totalExams;
+                courseDetailsInfo.TotalEnrollments = totalEnrollments;
+                courseDetailsInfo.TotalExams = totalExams;
 
-                return Response<CourseDetailsDto>.Success(courseDetails);
+                return Response<CourseDetailsDto>.Success(courseDetailsInfo);
 
         }
         #endregion
@@ -219,13 +229,13 @@ namespace ExaminantionSystem.Service
         #region QuestionsRelatedCourse
         public async Task<Response<List<QuestionPoolDto>>> GetQuestionPoolByCourseAsync(int courseId, int currentUserId)
         {
-            // Check course ownership
-            var course = await _courseRepository.GetByIdAsync(courseId);
-            if (course == null)
+            
+            var courseInfo = await _courseRepository.GetAll(c => c.Id == courseId).Select(c => new { c.InstructorId }).FirstOrDefaultAsync();
+            if (courseInfo == null)
                 return Response<List<QuestionPoolDto>>.Fail(ErrorType.COURSE_NOT_FOUND,
                     new ErrorDetail("Course not found"));
 
-            if (course.InstructorId != currentUserId)
+            if (courseInfo.InstructorId != currentUserId)
                 return Response<List<QuestionPoolDto>>.Fail(ErrorType.NOT_COURSE_OWNER,
                     new ErrorDetail("You can only access questions from your own courses"));
 
@@ -234,22 +244,20 @@ namespace ExaminantionSystem.Service
                 .OrderBy(q => q.QuestionLevel)
                 .ToListAsync();
 
-            var questionIds = questions.Select(q => q.Id).ToList();
+            //var questionIds = questions.Select(q => q.Id).ToList();
 
-            // Get all choices for these questions
-            var choices = await _choiceRepository.GetAll()
-                .Where(c => questionIds.Contains(c.QuestionId) && !c.IsDeleted)
+            //// Get all choices for these questions
+            //var choices = await _choiceRepository.GetAll()
+            //    .Where(c => questionIds.Contains(c.QuestionId) && !c.IsDeleted)
+            //    .ToListAsync();
+
+            //var questionPool = _mapper.Map<List<QuestionPoolDto>>(questions);
+
+
+            var questionPool = await _questionRepository.GetAll(q => q.CourseId == courseId)
+                .OrderBy(q => q.QuestionLevel)
+                .ProjectTo<QuestionPoolDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
-
-            var questionPool = _mapper.Map<List<QuestionPoolDto>>(questions);
-
-            // Manually set choices since it's a complex mapping
-            foreach (var questionDto in questionPool)
-            {
-                var question = questions.FirstOrDefault(q => q.Id == questionDto.Id);
-                var questionChoices = choices.Where(c => c.QuestionId == question.Id).ToList();
-                questionDto.Choices = _mapper.Map<List<QuestionChoicesPoolDto>>(questionChoices);
-            }
 
             return Response<List<QuestionPoolDto>>.Success(questionPool);
 

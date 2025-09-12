@@ -75,75 +75,91 @@ namespace ExaminantionSystem.Service
         
         public async Task<Response<ChoiceDto>> UpdateChoiceAsync(UpdateChoiceDto dto, int currentUserId)
         {
-           
-                var choice = await _choiceRepository.GetByIdAsync(dto.choiceId);
-                if (choice == null)
+
+            var choiceInfo = await _choiceRepository.GetAll(c => c.Id == dto.choiceId)
+                 .Select(c => new
+                 {
+                     Choice = c,
+                     IsAuthorized = c.Question.Course.InstructorId == currentUserId
+                 }) .FirstOrDefaultAsync();
+
+
+            if (choiceInfo == null)
                     return Response<ChoiceDto>.Fail(ErrorType.CHOICE_NOT_FOUND,
                         new ErrorDetail( "Choice not found"));
 
-                var question = await _questionRepository.GetByIdAsync(choice.QuestionId);
-                var course = await _courseRepository.GetByIdAsync(question.CourseId);
-
-                if (course.InstructorId != currentUserId)
+                if (!choiceInfo.IsAuthorized)
                     return Response<ChoiceDto>.Fail(ErrorType.ACCESS_DENIED,
                         new ErrorDetail("You can only update choices for your own questions"));
 
                 // If setting this choice as correct, ensure no other correct choices exist
                 if (dto.IsCorrect)
                 {
-                    var otherCorrectChoices = await _choiceRepository.GetAll(c => c.QuestionId == choice.QuestionId && c.Id != dto.choiceId && c.IsCorrect).ToListAsync();
+                    var otherCorrectChoices = await _choiceRepository.GetAll(c => c.QuestionId == choiceInfo.Choice.QuestionId && c.Id != dto.choiceId && c.IsCorrect).ToListAsync();
 
                     if (otherCorrectChoices.Any())
                     {
                         // Set all other choices as incorrect
-                        await _choiceRepository.UpdateAsync(
-                            c => c.QuestionId == choice.QuestionId &&
-                                 c.Id != dto.choiceId && c.IsCorrect,
-                            s => s.SetProperty(c => c.IsCorrect, false)
+                        await _choiceRepository.UpdateAsync(c => c.QuestionId == choiceInfo.Choice.QuestionId && c.Id != dto.choiceId && c.IsCorrect,
+                             s => s.SetProperty(c => c.IsCorrect, false)
                                   .SetProperty(c => c.UpdatedAt, DateTime.UtcNow)
                                   
                         );
                     }
                 }
 
-                choice.Text = dto.Text.Trim();
-                choice.IsCorrect = dto.IsCorrect;
-                choice.UpdatedAt = DateTime.UtcNow;
+                choiceInfo.Choice.Text = dto.Text.Trim();
+                choiceInfo.Choice.IsCorrect = dto.IsCorrect;
+                choiceInfo.Choice.UpdatedAt = DateTime.UtcNow;
 
-                await _choiceRepository.UpdateAsync(choice);
+                await _choiceRepository.UpdateAsync(choiceInfo.Choice);
                 await _choiceRepository.SaveChangesAsync();
 
-                var result = _mapper.Map<ChoiceDto>(choice);
+                var result = _mapper.Map<ChoiceDto>(choiceInfo);
 
                 return Response<ChoiceDto>.Success(result);
         }
 
         public async Task<Response<bool>> DeleteChoiceAsync(int choiceId, int currentUserId)
         {
-                var choice = await _choiceRepository.GetByIdAsync(choiceId);
-                if (choice == null)
+            var choiceInfo = await _choiceRepository.GetAll()
+                .Where(c => c.Id == choiceId)
+                .Select(c => new
+                {
+                    Choice = c,
+                    IsAuthorized = c.Question.Course.InstructorId == currentUserId,
+                    questionId = c.QuestionId,
+                    IsOnlyCorrectChoice = c.IsCorrect &&
+                        c.Question.Choices.Count(other => other.Id != choiceId && other.IsCorrect) == 0
+                })
+                .FirstOrDefaultAsync();
+
+            if (choiceInfo == null)
                     return Response<bool>.Fail(ErrorType.CHOICE_NOT_FOUND,
                         new ErrorDetail( "Choice not found"));
 
-                var question = await _questionRepository.GetByIdAsync(choice.QuestionId);
-                var course = await _courseRepository.GetByIdAsync(question.CourseId);
 
-                if (course.InstructorId != currentUserId)
+             if (!choiceInfo.IsAuthorized)
                     return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
                         new ErrorDetail("You can only delete choices from your own questions"));
 
-                // Check if this is the only correct choice
-                if (choice.IsCorrect)
+            var hasActiveExams = await _choiceRepository.IsChoiceRelatedWithActiveExam(choiceInfo.questionId);
+            if (hasActiveExams)
+                return Response<bool>.Fail(ErrorType.CHOICE_IN_ACTIVE_EXAM,
+                    new ErrorDetail("Cannot delete choice that is part of an active exam"));
+
+            // Check if this is the only correct choice
+            if (choiceInfo.IsOnlyCorrectChoice)
                 {
                     var otherCorrectChoices = await _choiceRepository.GetAll()
-                        .Where(c => c.QuestionId == choice.QuestionId &&
+                        .Where(c => c.QuestionId == choiceInfo.questionId &&
                                    c.Id != choiceId &&
                                    c.IsCorrect)
                         .CountAsync();
 
                     if (otherCorrectChoices == 0)
                         return Response<bool>.Fail(ErrorType.LAST_CORRECT_CHOICE,
-                            new ErrorDetail("LAST_CORRECT_CHOICE", "Cannot delete the only correct choice"));
+                            new ErrorDetail("Cannot delete the only correct choice"));
                 }
 
                 await _choiceRepository.DeleteAsync(choiceId);
@@ -151,10 +167,6 @@ namespace ExaminantionSystem.Service
 
                 return Response<bool>.Success(true);
             
-
         }
-
-
-
     }
 }

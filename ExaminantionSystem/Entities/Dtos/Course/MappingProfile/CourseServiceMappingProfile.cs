@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
+using ExaminantionSystem.Entities.Models;
 
 namespace ExaminantionSystem.Entities.Dtos.Course.MappingProfile
 {
@@ -15,15 +16,17 @@ namespace ExaminantionSystem.Entities.Dtos.Course.MappingProfile
 
             CreateMap<Models.Course, CourseInformationDto>()
                 .ForMember(dest => dest.Hours, opt => opt.MapFrom(src => src.Hours.Value))
-                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Instructor.FullName)).ReverseMap();
+                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Instructor.User.FullName)).ReverseMap();
 
             CreateMap<Models.Course, CourseDetailsDto>()
                 .ForMember(dest => dest.Hours, opt => opt.MapFrom(src => src.Hours.Value))
-                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Instructor.FullName)).ReverseMap();
+                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Instructor.User.FullName)).ReverseMap();
 
             // Question and Choice mappings
             CreateMap<Models.Question, QuestionPoolDto>()
-                .ForMember(dest => dest.Level, opt => opt.MapFrom(src => src.QuestionLevel)).ReverseMap();
+                .ForMember(dest => dest.Level, opt => opt.MapFrom(src => src.QuestionLevel))
+                .ForMember(dest => dest.ChoiceCount, opt => opt.MapFrom(src => src.Choices.Count))
+                .ForMember(dest => dest.Choices, opt => opt.MapFrom(src => src.Choices)).ReverseMap();
 
             CreateMap<Models.Choice, QuestionChoicesPoolDto>().ReverseMap();
 

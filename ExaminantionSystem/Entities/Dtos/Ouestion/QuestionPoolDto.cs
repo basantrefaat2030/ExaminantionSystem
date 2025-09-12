@@ -9,7 +9,6 @@ namespace ExaminantionSystem.Entities.Dtos.Ouestion
         public string Content { get; set; }
         public QuestionLevel Level { get; set; }
         public double Mark { get; set; }
-        public DateTime CreatedAt { get; set; }
         public int ChoiceCount { get; set; }
         public List<QuestionChoicesPoolDto> Choices { get; set; }
     }

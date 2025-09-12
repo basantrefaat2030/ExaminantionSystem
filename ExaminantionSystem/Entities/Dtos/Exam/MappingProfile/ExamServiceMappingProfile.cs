@@ -17,7 +17,7 @@ namespace ExaminantionSystem.Entities.Dtos.Exam.MappingProfile
                 .ForMember(dest => dest.ExamId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.ExamType))
                 .ForMember(dest => dest.CourseTitle, opt => opt.MapFrom(src => src.Course.Title))
-                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Course.Instructor.FullName))
+                .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Course.Instructor.User.FullName))
                 .ForMember(dest => dest.QuestionCount, opt => opt.MapFrom(src => src.NumberOfQuestion));
 
             CreateMap<Question, ExamQuestionDto>()

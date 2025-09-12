@@ -14,21 +14,21 @@ namespace ExaminantionSystem.Infrastructure.Repositories
 
         public async Task<bool> ChoiceTextExistsAsync(string text, int questionId)
         {
-            var query = _context.Choices
-                .Where(c => c.Text.ToLower() == text.ToLower() &&
+            return await  _context.Choices
+                .AnyAsync(c => c.Text.ToLower() == text.ToLower() &&
                           c.QuestionId == questionId &&
                           !c.IsDeleted && c.IsActive);
-
-            return await query.AnyAsync();
         }
 
-        public async Task<List<Choice>> GetChoicesForQuestionAsync(int questionId)
+        public async Task<bool> IsChoiceRelatedWithActiveExam(int questionId)
         {
-            return await _context.Choices
-                .Where(c => c.QuestionId == questionId && !c.IsDeleted && c.IsActive)
-                .OrderBy(c => c.Id)
-                .ToListAsync();
-        }
+            return await _context.ExamQuestions
+                   .AnyAsync(eq => eq.QuestionId == questionId && 
+                    eq.Question.IsActive && 
+                    !eq.Question.IsDeleted &&
+                    eq.Exam.StartDate <= DateTime.UtcNow &&
+                    eq.Exam.EndDate >= DateTime.UtcNow);
+        } 
 
     }
 }

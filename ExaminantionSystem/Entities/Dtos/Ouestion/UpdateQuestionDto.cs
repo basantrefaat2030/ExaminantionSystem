@@ -21,10 +21,10 @@ namespace ExaminantionSystem.Entities.Dtos.Ouestion
             [Range(1.0, 10.0, ErrorMessage = "Mark must be between 1.0 and 10.0")]
             public double Mark { get; set; }
 
-            [Required(ErrorMessage = "At least one choice is required")]
-            [MinLength(2, ErrorMessage = "Question must have at least 2 choices")]
-            [MaxLength(4, ErrorMessage = "Question cannot have more than 4 choices")]
-            public List<UpdateChoiceDto> Choices { get; set; }
+            //[Required(ErrorMessage = "At least one choice is required")]
+            //[MinLength(2, ErrorMessage = "Question must have at least 2 choices")]
+            //[MaxLength(4, ErrorMessage = "Question cannot have more than 4 choices")]
+            //public List<UpdateChoiceDto> Choices { get; set; }
 
             [Required]
             public int CourseId { get; set; }

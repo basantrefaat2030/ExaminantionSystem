@@ -21,7 +21,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
         public async Task<bool> StudentEmailExistsAsync(string email)
         {
             var query = _context.Students
-                .Where(s => s.EmailAddress.ToLower() == email.ToLower() && !s.IsDeleted && s.IsActive);
+                .Where(s => s.User.EmailAddress.ToLower() == email.ToLower() && !s.IsDeleted && s.IsActive);
 
 
             return await query.AnyAsync();

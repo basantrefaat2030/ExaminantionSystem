@@ -27,6 +27,7 @@
         EXAM_HAS_ATTEMPTS,
         EXAM_RESULT_NOT_FOUND,
         EXAM_TIME_EXPIRED,
+        EXAM_ALREADY_SUBMITTED,
 
 
         // Question errors
@@ -44,6 +45,7 @@
         MAX_CHOICES_EXCEEDED,
         EMPTY_CHOICE_CONTENT,
         LAST_CORRECT_CHOICE,
+        CHOICE_IN_ACTIVE_EXAM,
 
 
         // Access errors

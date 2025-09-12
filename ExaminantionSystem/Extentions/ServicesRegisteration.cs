@@ -8,6 +8,12 @@ using ExaminantionSystem.MappingProfile;
 using ExaminantionSystem.Entities.ViewModels.Course.MappingProfile;
 using ExaminantionSystem.Entities.Dtos.Course.MappingProfile;
 using ExaminantionSystem.Middleware;
+using Microsoft.Extensions.DependencyInjection;
+using ExaminantionSystem.Entities.Dtos.Instructor.MappingProfile;
+using ExaminantionSystem.Entities.Dtos.Student.MappingProfile;
+using ExaminantionSystem.Entities.Dtos.Ouestion.MappingProfile;
+using ExaminantionSystem.Entities.Dtos.Choice.MappingProfile;
+using ExaminantionSystem.Entities.Dtos.Exam.MappingProfile;
 
 namespace ExaminantionSystem.Extentions
 {
@@ -42,9 +48,19 @@ namespace ExaminantionSystem.Extentions
             //register Auto Mapper for Services
             services.AddAutoMapper(typeof(CourseServiceMappingProfile));
 
+
+            //registeraion automapper for services(Dtos)
+            services.AddAutoMapper(typeof (InstructorServiceMappingProfile));
+            services.AddAutoMapper(typeof(StudentServiceAutoMapping));
+            services.AddAutoMapper(typeof(QuestionServiceMappingProfile));
+            services.AddAutoMapper(typeof(ChoiceServiceMappingProfile));
+            services.AddAutoMapper(typeof(ExamServiceMappingProfile));
+            services.AddAutoMapper(typeof(CourseServiceMappingProfile));
+
             //registeraion automapper for controllers
             services.AddAutoMapper(typeof(GeneralMapping));
             services.AddAutoMapper(typeof(CourseMappingProfile));
+
 
             // register middleware 
             services.AddScoped<TransactionMiddleware>();

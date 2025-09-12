@@ -55,20 +55,26 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<StudentEnrollmentDto>> RequestEnrollmentAsync(int courseId, int currentUserId)
         {
+
+            var courseInfo = await _courseRepository.GetAll(c => c.Id == courseId)
+                .Select(c => new
+                {
+                    ExistingEnrollment = c.Enrollments
+                        .FirstOrDefault(sc => sc.StudentId == currentUserId && sc.IsActive && !sc.IsDeleted &&
+                                            (sc.Status == RequestStatus.Pending || sc.Status == RequestStatus.Approved))
+                }).FirstOrDefaultAsync();
+
+
             // Check if course exists
-            var course = await _courseRepository.GetByIdAsync(courseId);
-            if (course == null)
+            if (courseInfo == null)
                 return Response<StudentEnrollmentDto>.Fail(ErrorType.COURSE_NOT_FOUND,
                     new ErrorDetail("Course not found"));
 
             // Check if student already has a pending or approved request
-            var existingEnrollment = await _studentCourseRepository
-                          .GetAll(e => e.StudentId == currentUserId && e.CourseId == courseId &&
-                           (e.Status == RequestStatus.Pending || e.Status == RequestStatus.Approved)).FirstOrDefaultAsync();
 
-            if (existingEnrollment != null)
+            if (courseInfo.ExistingEnrollment != null)
             {
-                var errorMessage = existingEnrollment.Status == RequestStatus.Approved
+                var errorMessage = courseInfo.ExistingEnrollment.Status == RequestStatus.Approved
                     ? "You are already enrolled in this course"
                     : "You already have a pending enrollment request for this course";
 
@@ -81,7 +87,7 @@ namespace ExaminantionSystem.Service
                 StudentId = currentUserId,
                 CourseId = courseId,
                 Status = RequestStatus.Pending,
-                RequestDate = DateTime.UtcNow,
+                RequestDate = DateTime.Now,
                 IsActive = false,
                 CreatedBy = currentUserId
             };
@@ -97,25 +103,33 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<bool>> CancelEnrollmentRequestAsync(int enrollmentId, int studentId)
         {
-            var enrollment = await _studentCourseRepository.GetByIdAsync(enrollmentId);
-            if (enrollment == null)
+            var enrollmentInfo = await _studentCourseRepository.GetAll(e => e.Id == enrollmentId)
+                .Select(e => new
+                {
+                    Enrollment = e,
+                    IsOwner = e.StudentId == studentId,
+                    CanCancel = e.Status == RequestStatus.Pending
+                })
+                .FirstOrDefaultAsync();
+            
+            if (enrollmentInfo == null)
                 return Response<bool>.Fail(ErrorType.ENROLLMENT_NOT_FOUND,
                     new ErrorDetail("Enrollment request not found"));
 
             // Check ownership
-            if (enrollment.StudentId != studentId)
+            if (!enrollmentInfo.IsOwner)
                 return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
                     new ErrorDetail("You can only cancel your own enrollment requests"));
 
             // Only pending requests can be cancelled
-            if (enrollment.Status != RequestStatus.Pending)
+            if (!enrollmentInfo.CanCancel)
                 return Response<bool>.Fail(ErrorType.CANCEL_NOT_ALLOWED,
                     new ErrorDetail("Only pending requests can be cancelled"));
 
-            enrollment.Status = RequestStatus.Cancelled;
-            enrollment.UpdatedAt = DateTime.UtcNow;
+            enrollmentInfo.Enrollment.Status = RequestStatus.Cancelled;
+            enrollmentInfo.Enrollment.UpdatedAt = DateTime.UtcNow;
 
-            await _studentCourseRepository.UpdateAsync(enrollment);
+            await _studentCourseRepository.UpdateAsync(enrollmentInfo.Enrollment);
             await _studentCourseRepository.SaveChangesAsync();
 
             return Response<bool>.Success(true);
@@ -124,9 +138,8 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<PagedResponse<StudentEnrollmentDto>>> GetStudentEnrollmentsAsync(int studentId, RequestStatus? status = null, int pageNumber = 1, int pageSize = 10)
         {
-
-            var query = _studentCourseRepository.GetAll()
-                .Where(e => e.StudentId == studentId);
+            //here can use predicate instaed of that 
+            var query = _studentCourseRepository.GetAll(e => e.StudentId == studentId);
 
             if (status.HasValue)
                 query = query.Where(e => e.Status == status.Value);
@@ -135,14 +148,15 @@ namespace ExaminantionSystem.Service
             query = query.OrderByDescending(e => e.RequestDate);
 
             var totalRecords = await query.CountAsync();
-            var enrollments = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
 
-            var studentEnrollments = _mapper.Map<List<StudentEnrollmentDto>>(enrollments);
+            //the .ProjectTo<StudentEnrollmentDto>(_mapper.ConfigurationProvider) mapping not in memory 
+            var studentEnrollments = await query
+            .ProjectTo<StudentEnrollmentDto>(_mapper.ConfigurationProvider)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
             var pagedResponse = new PagedResponse<StudentEnrollmentDto>(studentEnrollments, pageNumber, pageSize, totalRecords);
-
             return Response<PagedResponse<StudentEnrollmentDto>>.Success(pagedResponse);
 
 
@@ -151,39 +165,48 @@ namespace ExaminantionSystem.Service
         #endregion
 
         #region studentExams
-        public async Task<Response<StudentExamDto>> StartExamAsync(int examId, int currenUserId)
+        public async Task<Response<StudentExamDto>> StartExamAsync(int examId, int currentUserId)
         {
-            var exam = await _examRepository.GetByIdAsync(examId);
-            if (exam == null)
+            var examInfo = await _examRepository.GetAll()
+                .Where(e => e.Id == examId && !e.IsDeleted)
+                .Select(e => new
+                {
+                    Exam = e,
+                    IsEnrolled = e.Course.Enrollments
+                        .Any(sc => sc.StudentId == currentUserId && sc.Status == RequestStatus.Approved &&!sc.IsDeleted && sc.IsActive),
+                    HasActiveExam = e.ExamResults
+                        .Any(er => er.StudentId == currentUserId && er.SubmittedAt == null &&!er.IsDeleted && er.IsActive)
+                }).FirstOrDefaultAsync();
+
+            if (examInfo == null)
                 return Response<StudentExamDto>.Fail(ErrorType.EXAM_NOT_FOUND,
                     new ErrorDetail( "Exam not found"));
 
             // Check if student is enrolled in the course
-            var isEnrolled = await _studentRepository.IsStudentEnrolledInCourseAsync(exam.CourseId, currenUserId);
+            //var isEnrolled = await _studentRepository.IsStudentEnrolledInCourseAsync(exam.CourseId, currenUserId);
 
-            if (!isEnrolled)
+            if (!examInfo.IsEnrolled)
                 return Response<StudentExamDto>.Fail(ErrorType.NOT_ENROLLED,
                     new ErrorDetail("You are not enrolled in this course"));
 
             // Check if student already has an active exam result
-            var existingResult = await _studentRepository.IsStudentHasActiveExamAsync(examId, currenUserId);
+            //var existingResult = await _studentRepository.IsStudentHasActiveExamAsync(examId, currenUserId);
 
-            if (existingResult)
+            if (!examInfo.HasActiveExam)
                 return Response<StudentExamDto>.Fail(ErrorType.EXAM_ALREADY_STARTED,
                     new ErrorDetail( "You have already started this exam"));
 
             var examResult = new ExamResult
             {
-                StudentId = currenUserId,
+                StudentId = currentUserId,
                 ExamId = examId,
-                StartedAt = DateTime.UtcNow,
-                CreatedBy = currenUserId
+                StartedAt = DateTime.Now,
+                CreatedBy = currentUserId
             };
 
             await _examResultRepository.AddAsync(examResult);
             await _examResultRepository.SaveChangesAsync();
 
-            // Manual mapping
             var result = await _examResultRepository.GetAll(er => er.Id == examResult.Id).ProjectTo<StudentExamDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
 
             return Response<StudentExamDto>.Success(result);
@@ -192,25 +215,27 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<ExamResultDto>> SubmitExamAnswersAsync(SubmitStudentAnswerDto answerDto, int currentUserId)
         {
+            // Get exam result with validation in a single query
+            var examResultInfo = await _examResultRepository.GetAll(er => er.Id == answerDto.examId && er.StudentId == currentUserId)
+                .Select(er => new
+                {
+                    ExamInfo = er.Exam,
+                    ExamResult = er,
+                    IsSubmitted = er.SubmittedAt != null,
+                    TimeElapsed = DateTime.Now - er.StartedAt.Value,
+                    ExamDuration = er.Exam.Duration
+                })
+                .FirstOrDefaultAsync();
 
-            var examResult = await _studentRepository.StudentHasActiveExamAsync(answerDto.examId, currentUserId);
-            if (examResult == null)
+            if (examResultInfo == null)
                 return Response<ExamResultDto>.Fail(ErrorType.EXAM_RESULT_NOT_FOUND,
                     new ErrorDetail("Exam result not found"));
 
-            if (examResult.StudentId != currentUserId)
-                return Response<ExamResultDto>.Fail(ErrorType.ACCESS_DENIED,
-                    new ErrorDetail("You can only submit answers for your own exam"));
+            if (examResultInfo.IsSubmitted)
+                return Response<ExamResultDto>.Fail(ErrorType.EXAM_ALREADY_SUBMITTED,
+                    new ErrorDetail("Exam has already been submitted"));
 
-            //if (examResult.SubmittedAt != null)
-            //    return Response<bool>.Fail(ErrorType.BusinessRule,
-            //        new ErrorDetail("EXAM_ALREADY_SUBMITTED", "Exam has already been submitted"));
-
-            var exam = await _examRepository.GetByIdAsync(examResult.ExamId);
-
-            // Check if time has expired
-            var timeElapsed = DateTime.UtcNow - examResult.StartedAt.Value;
-            if (timeElapsed.TotalMinutes > exam.Duration)
+            if (examResultInfo.TimeElapsed.TotalMinutes > examResultInfo.ExamDuration)
                 return Response<ExamResultDto>.Fail(ErrorType.EXAM_TIME_EXPIRED,
                     new ErrorDetail("Exam time has expired"));
 
@@ -218,48 +243,50 @@ namespace ExaminantionSystem.Service
             var studentAnswers = _mapper.Map<List<StudentAnswer>>(answerDto.answers);
             studentAnswers.ForEach(sa =>
             {
-                sa.ExamResultId = examResult.Id;
+                sa.ExamResultId = examResultInfo.ExamResult.Id;
                 sa.CreatedBy = currentUserId;
             });
+
             await _studentAnswerRepository.AddRangeAsync(studentAnswers);
             await _studentAnswerRepository.SaveChangesAsync();
 
             // Evaluate the exam
-            var evaluationResult = await EvaluateExamAsync(examResult.Id, currentUserId);
-                if (!evaluationResult.Succeeded)
-                    throw new Exception("Failed to evaluate exam: " + string.Join(", ", evaluationResult.Error.Errors.Select(e => e.Detail)));
+            return await EvaluateExamAsync(examResultInfo.ExamResult.Id);
 
-
-                return evaluationResult;
 
         }
 
 
-        private async Task<Response<ExamResultDto>> EvaluateExamAsync(int examResultId, int studentId)
+        private async Task<Response<ExamResultDto>> EvaluateExamAsync(int examResultId)
         {
-            // Get student answers
-            var studentAnswers = _studentAnswerRepository.GetAll(sa => sa.ExamResultId == examResultId);
+            var examResultInfo = await _examResultRepository.GetAll(er => er.Id == examResultId)
+                .Select(er => new
+                {
+                    ExamResult = er,
+                    StudentAnswers = er.StudentAnswers
+                        .Where(sa => sa.IsActive && !sa.IsDeleted),
+                    Questions = er.Exam.ExamQuestions
+                        .Where(eq => eq.Question.IsActive && !eq.Question.IsDeleted)
+                        .Select(eq => eq.Question),
+                    AllChoices = er.Exam.ExamQuestions
+                        .SelectMany(eq => eq.Question.Choices
+                            .Where(ch => ch.IsActive && !ch.IsDeleted))
+                })
+                .AsSplitQuery()
+                .FirstOrDefaultAsync();
 
-            // Get questions and choices for evaluation
-            var questionIds = studentAnswers.Select(sa => sa.QuestionId).ToList();
-            var choiceIds = studentAnswers.Where(sa => sa.ChoiceId.HasValue).Select(sa => sa.ChoiceId.Value).ToList();
-
-            var questions = await _questionRepository.GetAll()
-                .Where(q => questionIds.Contains(q.Id))
-                .ToListAsync();
-
-            var choices = await _choiceRepository.GetAll()
-                .Where(c => choiceIds.Contains(c.Id))
-                .ToListAsync();
+            if (examResultInfo == null)
+                return Response<ExamResultDto>.Fail(ErrorType.EXAM_RESULT_NOT_FOUND,
+                    new ErrorDetail("Exam result not found"));
 
             // Calculate score
             double totalScore = 0;
             double totalMarks = 0;
             var questionResults = new List<EvaluateQuestionResultDto>();
 
-            foreach (var answer in studentAnswers)
+            foreach (var answer in examResultInfo.StudentAnswers)
             {
-                var question = questions.FirstOrDefault(q => q.Id == answer.QuestionId);
+                var question = examResultInfo.Questions.FirstOrDefault(q => q.Id == answer.QuestionId);
                 if (question == null) continue;
 
                 totalMarks += question.Mark;
@@ -270,7 +297,7 @@ namespace ExaminantionSystem.Service
 
                 if (answer.ChoiceId.HasValue)
                 {
-                    var choice = choices.FirstOrDefault(c => c.Id == answer.ChoiceId.Value);
+                    var choice = examResultInfo.AllChoices.FirstOrDefault(c => c.Id == answer.ChoiceId.Value);
                     if (choice != null)
                     {
                         selectedChoiceContent = choice.Text;
@@ -278,37 +305,34 @@ namespace ExaminantionSystem.Service
                     }
                 }
 
-                var Marks = isCorrect ? question.Mark : 0.0;
-                totalScore += Marks;
+                var earnedMarks = isCorrect ? question.Mark : 0.0;
+                totalScore += earnedMarks;
 
                 questionResults.Add(new EvaluateQuestionResultDto
                 {
                     QuestionId = answer.QuestionId,
                     Content = question.Content,
                     Mark = question.Mark,
-                    EarnedMarks = Marks,
+                    EarnedMarks = earnedMarks,
                     IsCorrect = isCorrect,
                     SelectedChoiceId = answer.ChoiceId,
                     SelectedChoiceContent = selectedChoiceContent
                 });
             }
 
-            //double percentage = totalMarks > 0 ? (totalScore / totalMarks) * 100 : 0;
+            // Update exam result
+            examResultInfo.ExamResult.Score = totalScore;
+            examResultInfo.ExamResult.SubmittedAt = DateTime.UtcNow;
 
-            // Update exam result with score
-
-            await _examResultRepository.UpdateAsync(er => er.Id == examResultId,
-                up => up.SetProperty(c => c.Score, totalScore)
-                        .SetProperty(c => c.SubmittedAt, DateTime.UtcNow));
+            await _examResultRepository.UpdateAsync(examResultInfo.ExamResult);
             await _examResultRepository.SaveChangesAsync();
 
+            // Map to DTO
+            var examResultDto = _mapper.Map<ExamResultDto>(examResultInfo.ExamResult);
+            examResultDto.TotalScore = totalScore;
+            examResultDto.QuestionResults = questionResults;
 
-
-            var examResult = await _examResultRepository.GetAll(er => er.Id == examResultId).ProjectTo<ExamResultDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
-            examResult.TotalScore = totalScore;
-            examResult.QuestionResults = questionResults;
-
-            return Response<ExamResultDto>.Success(examResult);
+            return Response<ExamResultDto>.Success(examResultDto);
 
         }
 

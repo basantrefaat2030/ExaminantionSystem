@@ -1,5 +1,6 @@
 ﻿
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using ExaminantionSystem.Entities.Dtos.Exam;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
 using ExaminantionSystem.Entities.Enums.Errors;
@@ -44,20 +45,25 @@ namespace ExaminantionSystem.Service
         public async Task<Response<ExamDto>> CreateExamAsync(CreateExamDto dto, int currentUserId)
         {
 
-            var course = await _courseRepository.GetByIdAsync(dto.CourseId);
-            if (course == null)
+            var courseInfo = await _courseRepository.GetAll(c => c.Id == dto.CourseId)
+                                  .Select(c => new 
+                                  { 
+                                     IsAuthorized =  c.InstructorId == currentUserId
+                                  })
+                                  .FirstOrDefaultAsync();
+            if (courseInfo == null)
                 return Response<ExamDto>.Fail(ErrorType.COURSE_NOT_FOUND,new ErrorDetail("Course not found"));
 
-            if (course.InstructorId != currentUserId)
+            if (!courseInfo.IsAuthorized)
                 return Response<ExamDto>.Fail(ErrorType.ACCESS_DENIED,
                     new ErrorDetail("You can only create exams for your own courses"));
 
             // For final exams, check if one already exists
             if (dto.Type == ExamType.Final)
             {
-                var existingFinalExam = _examRepository.GetAll(e => e.CourseId == dto.CourseId && e.ExamType == ExamType.Final).ToList();
+                var existingFinalExam = await _examRepository.GetAll(e => e.CourseId == dto.CourseId && e.ExamType == ExamType.Final).AnyAsync();
 
-                if (existingFinalExam != null)
+                if (!existingFinalExam)
                     return Response<ExamDto>.Fail(ErrorType.FINAL_EXAM_EXISTS,
                         new ErrorDetail("A final exam already exists for this course"));
             }
@@ -76,43 +82,52 @@ namespace ExaminantionSystem.Service
         public async Task<Response<ExamDto>> UpdateExamAsync(UpdateExamDto examDto, int currentUserId)
         {
             // Get exam
-            var exam = await _examRepository.GetByIdAsync(examDto.ExamId);
-            if (exam == null)
+
+            var examInfo = await _examRepository.GetAll( e => e.Id == examDto.ExamId).Select(exam => new {
+                Exam = exam,
+                ExamStarted = exam.StartDate > DateTime.Now,
+                IsAuthorized = exam.Course.InstructorId == currentUserId,
+                
+            }).FirstOrDefaultAsync();
+
+            if (examInfo == null)
                 return Response<ExamDto>.Fail(ErrorType.EXAM_NOT_FOUND,
                     new ErrorDetail("Exam not found"));
 
-            if (exam.StartDate > DateTime.Now)
+            if (examInfo.ExamStarted)
                 return Response<ExamDto>.Fail(ErrorType.EXAM_ALREADY_STARTED,
                     new ErrorDetail( "Cannot update an exam that has already started"));
 
-            var course = await _courseRepository.GetByIdAsync(exam.CourseId);
-            if (course.InstructorId != currentUserId)
+            if (examInfo.IsAuthorized)
                 return Response<ExamDto>.Fail(ErrorType.ACCESS_DENIED,
                     new ErrorDetail("You can only update your own exams"));
 
             // Update exam
-            _mapper.Map(examDto, exam);
+            _mapper.Map(examDto, examInfo.Exam);
 
             // exam.UpdatedAt = DateTime.UtcNow;
 
-            await _examRepository.UpdateAsync(exam);
+            await _examRepository.UpdateAsync(examInfo.Exam);
             await _examRepository.SaveChangesAsync();
 
-            var result = _mapper.Map<ExamDto>(exam);
+            var result = _mapper.Map<ExamDto>(examInfo.Exam);
             return Response<ExamDto>.Success(result);
         }
 
 
         public async Task<Response<bool>> DeleteExamAsync(int examId, int currentUserId)
         {
-            var exam = await _examRepository.GetByIdAsync(examId);
-            if (exam == null || exam.IsDeleted)
+            var examInfo = await _examRepository.GetAll(e => e.Id == examId).Select(exam => new {
+                IsAuthorized = exam.Course.InstructorId == currentUserId,
+
+            }).FirstOrDefaultAsync();
+
+            if (examInfo == null)
                 return Response<bool>.Fail(ErrorType.EXAM_NOT_FOUND,
                     new ErrorDetail("Exam not found"));
 
             // Check ownership
-            var course = await _courseRepository.GetByIdAsync(exam.CourseId);
-            if (course.InstructorId != currentUserId)
+            if (examInfo.IsAuthorized)
                 return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
                     new ErrorDetail("You can only delete your own exams"));
 
@@ -132,59 +147,72 @@ namespace ExaminantionSystem.Service
         #endregion
 
 
-        public async Task<Response<ExamWithQuestionsDto>> AutoGenerateExamQuestionsAsync(int examId, int questionsNumber)
+        //i used fixed precentage 
+        public async Task<Response<ExamWithQuestionsDto>> AutoGenerateExamQuestionsAsync(int examId)
         {
-                // Get exam
-                var exam = await _examRepository.GetByIdAsync(examId);
-                if (exam == null)
-                    return Response<ExamWithQuestionsDto>.Fail(ErrorType.EXAM_NOT_FOUND,
-                        new ErrorDetail("Exam not found"));
+            // Get exam
+            var examInfo = await _examRepository.GetAll(e => e.Id == examId).Select(ex => new
+            {
+                courseId = ex.CourseId,
+                numberOfQuetion = ex.NumberOfQuestion,
 
-                // Get all questions for this course
-                var questions = await _questionRepository.GetAll(q => q.CourseId == exam.CourseId).ToListAsync();
+            }).FirstOrDefaultAsync();
 
-                if (questions.Count < questionsNumber)
-                    return Response<ExamWithQuestionsDto>.Fail(ErrorType.INVALID_QUESTION_NUMBER,
-                        new ErrorDetail("Not enough questions available for auto-generation"));
 
-                // Balance questions by level (40% simple, 40% medium, 20% hard)
-                var simpleQuestions = questions.Where(q => q.QuestionLevel == QuestionLevel.Easy).ToList();
-                var mediumQuestions = questions.Where(q => q.QuestionLevel == QuestionLevel.Medium).ToList();
-                var hardQuestions = questions.Where(q => q.QuestionLevel == QuestionLevel.Hard).ToList();
+            if (examInfo == null)
+                return Response<ExamWithQuestionsDto>.Fail(ErrorType.EXAM_NOT_FOUND,
+                    new ErrorDetail("Exam not found"));
 
-                var selectedQuestions = new List<Question>();
+            // Get questions by level
+            var questionsByLevel = await _questionRepository.GetAll(q => q.CourseId == examInfo.courseId)
+                .GroupBy(q => q.QuestionLevel)
+                .ToDictionaryAsync(g => g.Key, g => g.ToList());
 
-                // Add simple questions (40%)
-                var easyCount = (int)Math.Ceiling(questionsNumber * 0.4);
-                selectedQuestions.AddRange(simpleQuestions.Take(easyCount));
+            if (questionsByLevel.Values.Sum(list => list.Count) < examInfo.numberOfQuetion)
 
-                // Add medium questions (40%)
-                var mediumCount = (int)Math.Ceiling(questionsNumber * 0.4);
+                return Response<ExamWithQuestionsDto>.Fail(ErrorType.INVALID_QUESTION_NUMBER,
+                    new ErrorDetail("Not enough questions available for auto-generation"));
+
+            // Balance questions by level (40% simple, 40% medium, 20% hard)
+            var selectedQuestions = new List<Question>();
+
+            // Add simple questions(40 %)
+            var easyCount = (int)Math.Ceiling(examInfo.numberOfQuetion * 0.4);
+
+            // Add medium questions (40%)
+            var mediumCount = (int)Math.Ceiling(examInfo.numberOfQuetion * 0.4);
+
+            // Add hard questions (20%)
+            var hardCount = examInfo.numberOfQuetion - easyCount - mediumCount;
+
+            //TryGetValue is a methid avaliable in C# dictioary to check if a key exists and get its value in a single operation
+            //return true or false 
+
+            if (questionsByLevel.TryGetValue(QuestionLevel.Easy, out var easyQuestions))
+                selectedQuestions.AddRange(easyQuestions.Take(easyCount));
+
+            if (questionsByLevel.TryGetValue(QuestionLevel.Medium, out var mediumQuestions))
                 selectedQuestions.AddRange(mediumQuestions.Take(mediumCount));
 
-                // Add hard questions (20%)
-                var hardCount = questionsNumber - easyCount - mediumCount;
+            if (questionsByLevel.TryGetValue(QuestionLevel.Hard, out var hardQuestions))
                 selectedQuestions.AddRange(hardQuestions.Take(hardCount));
 
-                // If we don't have enough questions, fill with available ones
-                if (selectedQuestions.Count < questionsNumber)
-                {
-                    var remaining = questionsNumber - selectedQuestions.Count;
-                    var availableQuestions = questions.Except(selectedQuestions).Take(remaining);
-                    selectedQuestions.AddRange(availableQuestions);
-                }
+            // If we don't have enough questions, fill with available ones
+            if (selectedQuestions.Count < examInfo.numberOfQuetion)
+            {
+                var allQuestions = questionsByLevel.Values.SelectMany(x => x).ToList();
+                var remainingQuestions = allQuestions.Except(selectedQuestions).Take(examInfo.numberOfQuetion - selectedQuestions.Count);
+                selectedQuestions.AddRange(remainingQuestions);
+            }
 
-                // Add exam questions using separated function
-                var addResult = await AddQuestionsToExamAsync(examId, selectedQuestions);
-                if (!addResult.Succeeded)
-                    return Response<ExamWithQuestionsDto>.Fail(addResult.Error.Type, addResult.Error.Errors.ToArray());
 
-                // Get the complete exam with questions and choices for response
-                var examWithQuestions = await GetExamWithQuestionsAsync(examId);
-                if (!examWithQuestions.Succeeded)
-                    return Response<ExamWithQuestionsDto>.Fail(examWithQuestions.Error.Type, examWithQuestions.Error.Errors.ToArray());
+            // Add exam questions using separated function
+            var addResult = await AddQuestionsToExamAsync(examId, selectedQuestions);
+            if (!addResult.Succeeded)
+                return Response<ExamWithQuestionsDto>.Fail(addResult.Error.Type, addResult.Error.Errors.ToArray());
 
-                return Response<ExamWithQuestionsDto>.Success(examWithQuestions.Data);
+            // Get the complete exam with questions and choices for response
+            return await GetExamWithQuestionsAsync(examId);
 
         }
 
@@ -206,80 +234,16 @@ namespace ExaminantionSystem.Service
         
         public async Task<Response<ExamWithQuestionsDto>> GetExamWithQuestionsAsync(int examId)
         {
-            
-                var exam = await _examRepository.GetByIdAsync(examId);
-                if (exam == null)
-                    return Response<ExamWithQuestionsDto>.Fail(ErrorType.EXAM_NOT_FOUND,
-                        new ErrorDetail("Exam not found"));
 
-                // Get course info
-                var course = await _courseRepository.GetByIdAsync(exam.CourseId);
+            var examWithDetails = await _examRepository.GetAll(e => e.Id == examId)
+                  .ProjectTo<ExamWithQuestionsDto>(_mapper.ConfigurationProvider)
+                  .FirstOrDefaultAsync();
 
-                var instructor = await _instructorRepository.GetByIdAsync(course.InstructorId);
+            if (examWithDetails == null)
+                return Response<ExamWithQuestionsDto>.Fail(ErrorType.EXAM_NOT_FOUND,
+                    new ErrorDetail("Exam not found"));
 
-                // Get exam questions with manual joins
-                var examQuestionIds = await _examQuestionRepository.GetAll()
-                    .Where(eq => eq.ExamId == examId)
-                    .Select(eq => eq.QuestionId)
-                    .ToListAsync();
-
-                var questions = await _questionRepository.GetAll(q => examQuestionIds.Contains(q.Id)).ToListAsync();
-
-                // Get choices for all questions
-                var questionIds = questions.Select(q => q.Id).ToList();
-                var choices = await _choiceRepository.GetAll(c => questionIds.Contains(c.QuestionId)).ToListAsync();
-
-                //var questionDtos = new List<ExamQuestionDto>();
-                 var questionDtos = _mapper.Map<List<ExamQuestionDto>>(questions);
-
-                foreach (var question in questionDtos)
-                {
-                    var questionChoices = choices.Where(c => c.QuestionId == question.QuestionId).ToList();
-                     question.Choices = _mapper.Map<List<ExamWithQuestionsChoicesDto>>(questionChoices);
-
-                //var choiceList = questionChoices.Select(c => new ExamWithQuestionsChoicesDto
-                //    {
-                //        Id = c.Id,
-                //        Text = c.Text,
-                //        IsCorrect = c.IsCorrect,
-                //        QuestionId = c.QuestionId,
-                //    }).ToList();
-
-                //    questionDtos.Add(new ExamQuestionDto
-                //    {
-                //        QuestionId = question.Id,
-                //        Content = question.Content,
-                //        Level = question.QuestionLevel,
-                //        Mark = question.Mark,
-                //        Choices = choiceList
-                //    });
-
-                }
-
-                //var result = new ExamWithQuestionsDto
-                //{
-                //    ExamId = exam.Id,
-                //    Title = exam.Title,
-                //    Description = exam.Description,
-                //    Type = exam.ExamType,
-                //    CourseId = exam.CourseId,
-                //    CourseTitle = course.Title,
-                //    Duration = exam.Duration,
-                //    NumberOfQuestion = exam.NumberOfQuestion,
-                //    IsAutoGenerated = exam.IsAutoGenerated,
-                //    CreatedAt = exam.CreatedAt,
-                //    Questions = questionDtos,
-                //    QuestionCount = questionDtos.Count,
-                //    InstructorName = instructor.FullName
-                //};
-
-                var result = _mapper.Map<ExamWithQuestionsDto>(exam);
-                result.CourseTitle = course.Title;
-                result.InstructorName = instructor.FullName;
-                result.Questions = questionDtos;
-                result.QuestionCount = questionDtos.Count;
-
-                return Response<ExamWithQuestionsDto>.Success(result);
+                return Response<ExamWithQuestionsDto>.Success(examWithDetails);
             
         }
 
