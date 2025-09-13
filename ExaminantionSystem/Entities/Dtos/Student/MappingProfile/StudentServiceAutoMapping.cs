@@ -12,7 +12,7 @@ namespace ExaminantionSystem.Entities.Dtos.Student.MappingProfile
             CreateMap<StudentCourse, StudentEnrollmentDto>()
            .ForMember(dest => dest.StudentName, opt => opt.MapFrom(src => src.Student.User.FullName))
            .ForMember(dest => dest.CourseTitle, opt => opt.MapFrom(src => src.Course.Title))
-           .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Course.Instructor.FullName));
+           .ForMember(dest => dest.InstructorName, opt => opt.MapFrom(src => src.Course.Instructor.User.FullName));
 
             CreateMap<ExamResult, StudentExamDto>()
                 .ForMember(dest => dest.ExamResultId, opt => opt.MapFrom(src => src.Id))

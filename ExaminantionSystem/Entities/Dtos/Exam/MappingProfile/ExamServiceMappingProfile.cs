@@ -8,10 +8,11 @@ namespace ExaminantionSystem.Entities.Dtos.Exam.MappingProfile
 
         public ExamServiceMappingProfile()
         {
-            // Entity to DTO mappings
             CreateMap<Models.Exam, ExamDto>()
-                .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.ExamType))
-                .ForMember(dest => dest.CourseTitle, opt => opt.MapFrom(src => src.Course.Title));
+                .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.ExamType));
+
+            CreateMap<Models.Course, ExamCourseInfoDto>()
+                .ForMember(dest => dest.CourseTitle, opt => opt.MapFrom(src => src.Title)).ReverseMap();
 
             CreateMap<Models.Exam, ExamWithQuestionsDto>()
                 .ForMember(dest => dest.ExamId, opt => opt.MapFrom(src => src.Id))

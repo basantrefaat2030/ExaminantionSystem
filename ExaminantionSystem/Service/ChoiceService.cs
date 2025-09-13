@@ -28,7 +28,7 @@ namespace ExaminantionSystem.Service
             _mapper = mapper;
         }
 
-
+        #region ChoiceCRUDOPeration
         public async Task<Response<List<ChoiceDto>>> CreateChoicesForQuestionAsync(List<CreateChoiceDto> choicesDto, int questionId, int currentUserId)
         {
             var question = await _questionRepository.GetByIdAsync(questionId);
@@ -167,6 +167,34 @@ namespace ExaminantionSystem.Service
 
                 return Response<bool>.Success(true);
             
+        }
+        #endregion
+
+        public async Task<Response<List<ChoiceDto>>> GetChoicesForQuestionAsync(int questionId, int currentUserId)
+        {
+            // Validate question exists and user has access
+            var questionInfo = await _questionRepository.GetAll(q => q.Id == questionId)
+                .Select(q => new
+                {
+                    Question = q,
+                    CourseInfo = q.Course,
+                    Choices = q.Choices.Where(c => !c.IsDeleted && c.IsActive),
+                    IsAuthorized = q.Course.InstructorId == currentUserId
+                }).FirstOrDefaultAsync();
+
+            if (questionInfo == null)
+                return Response<List<ChoiceDto>>.Fail(
+                    ErrorType.QUESTION_NOT_FOUND,
+                    new ErrorDetail($"Question with ID {questionId} not found"));
+
+            if (!questionInfo.IsAuthorized)
+                return Response<List<ChoiceDto>>.Fail(
+                    ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only view choices for your own questions"));
+
+            var choiceInfo = _mapper.Map<List<ChoiceDto>>(questionInfo.Choices);
+            return Response<List<ChoiceDto>>.Success(choiceInfo);
+
         }
     }
 }

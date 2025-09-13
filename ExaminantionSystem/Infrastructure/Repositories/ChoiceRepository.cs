@@ -26,8 +26,8 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                    .AnyAsync(eq => eq.QuestionId == questionId && 
                     eq.Question.IsActive && 
                     !eq.Question.IsDeleted &&
-                    eq.Exam.StartDate <= DateTime.UtcNow &&
-                    eq.Exam.EndDate >= DateTime.UtcNow);
+                    eq.Exam.StartDate <= DateTime.Now &&
+                    eq.Exam.EndDate >= DateTime.Now);
         } 
 
     }

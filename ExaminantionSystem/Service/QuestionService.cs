@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using ExaminantionSystem.Entities.Dtos.Choice;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
 using ExaminantionSystem.Entities.Enums;
@@ -196,23 +197,44 @@ namespace ExaminantionSystem.Service
             
         }
 
-        //public async Task<Response<List<ChoiceDto>>> GetChoicesForQuestionAsync(int questionId, int currentUserId)
-        //{
-        //    var question = await _questionRepository.GetByIdAsync(questionId);
-        //    if (question == null)
-        //        return Response<List<ChoiceDto>>.Fail(ErrorType.QUESTION_NOT_FOUND,
-        //            new ErrorDetail("Question not found"));
+        public async Task<Response<bool>> DeleteAllChoicesForQuestionAsync(int questionId, int currentUserId)
+        {
+            // First verify the question exists and user has access
+            var questionInfo = await  _questionRepository.GetAll(a => a.Id == questionId).Select(q => new 
+            {
+                courseId = q.CourseId,
+                CourseInfo = q.Course,
+                IsAuthorized = q.Course.InstructorId == currentUserId,
+                choices = q.Choices.Where(a => a.IsActive && !a.IsDeleted)
 
-                // Manual mapping
-               //var choices = await _choiceRepository.GetAll()
-               // .Where(c => c.QuestionId == questionId && !c.IsDeleted)
-               // .OrderBy(c => c.Id)
-               // .ProjectTo<ChoiceDto>(_mapper.ConfigurationProvider)
-               // .ToListAsync();
+            
+            }).FirstOrDefaultAsync();
 
-        //        return Response<List<ChoiceDto>>.Success(choiceDtos);
+            if (questionInfo == null)
+                return Response<bool>.Fail(ErrorType.QUESTION_NOT_FOUND,
+                    new ErrorDetail("QUESTION_NOT_FOUND", "Question not found"));
 
-        //}
+            if (questionInfo.CourseInfo == null)
+                return Response<bool>.Fail(ErrorType.COURSE_NOT_FOUND,
+                    new ErrorDetail("COURSE_NOT_FOUND", "Course not found"));
+
+            if (!questionInfo.IsAuthorized)
+                return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("ACCESS_DENIED", "You can only delete choices for your own questions"));
+
+            // Check if any choice is used in active exams
+            var hasActiveExams = await _examRepository.IsQuestionInExamActiveAsync(questionId);
+            if (hasActiveExams)
+                return Response<bool>.Fail(ErrorType.CHOICE_IN_ACTIVE_EXAM,
+                    new ErrorDetail("CHOICE_IN_ACTIVE_EXAM", "Cannot delete choices that are part of active exams"));
+
+                // Soft delete all choices for this question
+                await _choiceRepository.DeleteRangeAsync(questionInfo.choices);
+                await _choiceRepository.SaveChangesAsync();
+
+                return Response<bool>.Success(true);
+
+        }
 
 
     }

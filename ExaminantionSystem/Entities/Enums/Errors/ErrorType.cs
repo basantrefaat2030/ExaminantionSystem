@@ -28,6 +28,7 @@
         EXAM_RESULT_NOT_FOUND,
         EXAM_TIME_EXPIRED,
         EXAM_ALREADY_SUBMITTED,
+        THIS_COURSE_NOT_HAS_EXAMS,
 
 
         // Question errors

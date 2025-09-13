@@ -46,13 +46,13 @@ namespace ExaminantionSystem.Service
         {
 
             var courseInfo = await _courseRepository.GetAll(c => c.Id == dto.CourseId)
-                                  .Select(c => new 
-                                  { 
-                                     IsAuthorized =  c.InstructorId == currentUserId
+                                  .Select(c => new
+                                  {
+                                      IsAuthorized = c.InstructorId == currentUserId
                                   })
                                   .FirstOrDefaultAsync();
             if (courseInfo == null)
-                return Response<ExamDto>.Fail(ErrorType.COURSE_NOT_FOUND,new ErrorDetail("Course not found"));
+                return Response<ExamDto>.Fail(ErrorType.COURSE_NOT_FOUND, new ErrorDetail("Course not found"));
 
             if (!courseInfo.IsAuthorized)
                 return Response<ExamDto>.Fail(ErrorType.ACCESS_DENIED,
@@ -83,11 +83,12 @@ namespace ExaminantionSystem.Service
         {
             // Get exam
 
-            var examInfo = await _examRepository.GetAll( e => e.Id == examDto.ExamId).Select(exam => new {
+            var examInfo = await _examRepository.GetAll(e => e.Id == examDto.ExamId).Select(exam => new
+            {
                 Exam = exam,
                 ExamStarted = exam.StartDate > DateTime.Now,
                 IsAuthorized = exam.Course.InstructorId == currentUserId,
-                
+
             }).FirstOrDefaultAsync();
 
             if (examInfo == null)
@@ -96,9 +97,9 @@ namespace ExaminantionSystem.Service
 
             if (examInfo.ExamStarted)
                 return Response<ExamDto>.Fail(ErrorType.EXAM_ALREADY_STARTED,
-                    new ErrorDetail( "Cannot update an exam that has already started"));
+                    new ErrorDetail("Cannot update an exam that has already started"));
 
-            if (examInfo.IsAuthorized)
+            if (!examInfo.IsAuthorized)
                 return Response<ExamDto>.Fail(ErrorType.ACCESS_DENIED,
                     new ErrorDetail("You can only update your own exams"));
 
@@ -117,7 +118,8 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<bool>> DeleteExamAsync(int examId, int currentUserId)
         {
-            var examInfo = await _examRepository.GetAll(e => e.Id == examId).Select(exam => new {
+            var examInfo = await _examRepository.GetAll(e => e.Id == examId).Select(exam => new
+            {
                 IsAuthorized = exam.Course.InstructorId == currentUserId,
 
             }).FirstOrDefaultAsync();
@@ -127,7 +129,7 @@ namespace ExaminantionSystem.Service
                     new ErrorDetail("Exam not found"));
 
             // Check ownership
-            if (examInfo.IsAuthorized)
+            if (!examInfo.IsAuthorized)
                 return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
                     new ErrorDetail("You can only delete your own exams"));
 
@@ -212,7 +214,12 @@ namespace ExaminantionSystem.Service
                 return Response<ExamWithQuestionsDto>.Fail(addResult.Error.Type, addResult.Error.Errors.ToArray());
 
             // Get the complete exam with questions and choices for response
-            return await GetExamWithQuestionsAsync(examId);
+
+            var examWithDetails = await _examRepository.GetAll(e => e.Id == examId)
+                  .ProjectTo<ExamWithQuestionsDto>(_mapper.ConfigurationProvider)
+                  .FirstOrDefaultAsync();
+
+            return Response<ExamWithQuestionsDto>.Success(examWithDetails);
 
         }
 
@@ -220,21 +227,20 @@ namespace ExaminantionSystem.Service
 
         private async Task<Response<bool>> AddQuestionsToExamAsync(int examId, List<Question> questions)
         {
-                var examQuestions = questions.Select(q => new ExamQuestion
-                {
-                    ExamId = examId,
-                    QuestionId = q.Id
-                }).ToList();
+            var examQuestions = questions.Select(q => new ExamQuestion
+            {
+                ExamId = examId,
+                QuestionId = q.Id
+            }).ToList();
 
-                await _examQuestionRepository.AddRangeAsync(examQuestions);
-                await _examQuestionRepository.SaveChangesAsync();
+            await _examQuestionRepository.AddRangeAsync(examQuestions);
+            await _examQuestionRepository.SaveChangesAsync();
 
-                return Response<bool>.Success(true);
+            return Response<bool>.Success(true);
         }
-        
+
         public async Task<Response<ExamWithQuestionsDto>> GetExamWithQuestionsAsync(int examId)
         {
-
             var examWithDetails = await _examRepository.GetAll(e => e.Id == examId)
                   .ProjectTo<ExamWithQuestionsDto>(_mapper.ConfigurationProvider)
                   .FirstOrDefaultAsync();
@@ -243,8 +249,52 @@ namespace ExaminantionSystem.Service
                 return Response<ExamWithQuestionsDto>.Fail(ErrorType.EXAM_NOT_FOUND,
                     new ErrorDetail("Exam not found"));
 
-                return Response<ExamWithQuestionsDto>.Success(examWithDetails);
-            
+            return Response<ExamWithQuestionsDto>.Success(examWithDetails);
+
+        }
+
+        public async Task<Response<List<ExamDto>>> GetExamsByCourseAsync(int courseId, int currentUserId)
+        {
+            var courseExams = await _courseRepository.GetAll(c => c.Id == courseId)
+                .Select(c => new
+                {
+                    Course = c,
+                    IsAuthorized = c.InstructorId == currentUserId,
+                    CourseExamsInfo = c.Exams
+                        .Where(e => e.IsActive && !e.IsDeleted)
+                        .Select(e => new ExamDto
+                        {
+                            Id = e.Id,
+                            Title = e.Title,
+                            Description = e.Description,
+                            Duration = e.Duration,
+                            EndDate = e.EndDate,
+                            StartDate = e.StartDate,
+                            IsAutoGenerated = e.IsAutoGenerated,
+                            NumberOfQuestion = e.NumberOfQuestion,
+                            CourseInfo = new ExamCourseInfoDto()
+                            {
+                                CourseId = c.Id,
+                                CourseTitle = c.Title,
+                            }
+                           
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (courseExams.Course == null)
+                return Response<List<ExamDto>>.Fail(ErrorType.COURSE_NOT_FOUND, new ErrorDetail("Course not found"));
+
+            if (!courseExams.IsAuthorized)
+                return Response<List<ExamDto>>.Fail(ErrorType.ACCESS_DENIED,
+                    new ErrorDetail("You can only view exams for your own courses"));
+
+            if (!courseExams.CourseExamsInfo.Any())
+                return Response<List<ExamDto>>.Fail(ErrorType.THIS_COURSE_NOT_HAS_EXAMS,
+                    new ErrorDetail("No exams found for this course"));
+
+            return Response<List<ExamDto>>.Success(courseExams.CourseExamsInfo);
         }
 
     }

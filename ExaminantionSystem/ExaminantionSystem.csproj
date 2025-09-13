@@ -20,9 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Entities\ViewModels\Choice\" />
-    <Folder Include="Entities\ViewModels\Instructor\" />
-    <Folder Include="Entities\ViewModels\Exam\" />
     <Folder Include="Infrastructure\LocalDB\" />
   </ItemGroup>
 

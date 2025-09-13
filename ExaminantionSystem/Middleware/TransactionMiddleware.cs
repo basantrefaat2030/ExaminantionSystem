@@ -13,6 +13,14 @@ namespace ExaminantionSystem.Middleware
         }
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
         {
+            //for get endpoints
+            if (context.Request.Method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+            {
+                // Skip transaction for GET requests
+                await next(context);
+                return;
+            }
+
             using var transaction = await _examinationContext.Database.BeginTransactionAsync();
             try
             {

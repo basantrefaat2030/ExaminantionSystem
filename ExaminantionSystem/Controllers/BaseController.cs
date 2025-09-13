@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ExaminantionSystem.Controllers
 {
@@ -8,11 +9,18 @@ namespace ExaminantionSystem.Controllers
     [ApiController]
     public class BaseController : ControllerBase
     {
-        private readonly IMapper _mapper;
-        public BaseController(IMapper mapper) 
+        public BaseController() 
         {
-            mapper = _mapper;
+           
 
+        }
+
+        public int GetCurrentUserId()
+        {
+            if(User.Identity.IsAuthenticated)
+              return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+            return 0;
         }
     }
 }

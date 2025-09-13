@@ -1,4 +1,5 @@
-﻿using ExaminantionSystem.Entities.Wrappers;
+﻿using ExaminantionSystem.Entities.Enums.Errors;
+using ExaminantionSystem.Entities.Wrappers;
 
 namespace ExaminantionSystem.Entities.ViewModels
 {
@@ -13,7 +14,7 @@ namespace ExaminantionSystem.Entities.ViewModels
         public static ResponseViewModel<T> Success(T data) => new() { Data = data, Succeeded = true, Message = string.Empty };
 
         // Error constructors
-        public static ResponseViewModel<T> Fail(ErrorType type, params ErrorDetail[] errors) => new() { Error = new ErrorResponseViewModel(type, errors), Succeeded = false };
+        public static ResponseViewModel<T> Fail(GlobalErrorType type, params ErrorDetailViewModel[] errors) => new() { Error = new ErrorResponseViewModel(type, errors), Succeeded = false };
 
 
     }
@@ -21,12 +22,12 @@ namespace ExaminantionSystem.Entities.ViewModels
 
     public class ErrorResponseViewModel
     {
-        public ErrorType Type { get; set; }
+        public GlobalErrorType Type { get; set; }
         public int StatusCode => (int)Type;
         public IEnumerable<ErrorDetailViewModel> Errors { get; set; }
         public string URIError { get; set; }
 
-        public ErrorResponseViewModel(ErrorType type, IEnumerable<ErrorDetailViewModel> errors, string UriError = null)
+        public ErrorResponseViewModel(GlobalErrorType type, IEnumerable<ErrorDetailViewModel> errors, string UriError = null)
         {
             Type = type;
             Errors = errors;
@@ -40,6 +41,16 @@ namespace ExaminantionSystem.Entities.ViewModels
         public string Title { get; set; }
         public string Detail { get; set; }
         public string Source { get; set; }
+
+
+        public ErrorDetailViewModel(string code, string title = null, string detail = null,
+                  string source = null)
+        {
+            Code = code;
+            Title = title;
+            Detail = detail;
+            Source = source;
+        }
     }
 
 

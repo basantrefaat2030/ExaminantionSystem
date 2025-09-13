@@ -34,7 +34,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             return await _context.ExamQuestions.AnyAsync(a => a.QuestionId == questionId
             && !a.Exam.IsDeleted
             && a.Exam.IsActive
-            && a.Exam.StartDate < DateTime.UtcNow);
+            && a.Exam.StartDate < DateTime.Now);
         }
         public async Task<bool> IsExamHasSubmissionsAsync(int examId)
         {

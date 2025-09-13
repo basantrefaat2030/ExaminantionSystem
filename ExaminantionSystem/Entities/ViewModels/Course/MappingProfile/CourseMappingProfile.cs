@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using ExaminantionSystem.Entities.Dtos.Choice;
-using ExaminantionSystem.Entities.Dtos.Courcse;
 using ExaminantionSystem.Entities.Dtos.Course;
 using ExaminantionSystem.Entities.Dtos.Ouestion;
 using ExaminantionSystem.Entities.ViewModels.Question;
@@ -22,8 +21,6 @@ namespace ExaminantionSystem.Entities.ViewModels.Course.MappingProfile
             CreateMap<CourseDetailsDto, CourseDetailsVM>();
             CreateMap<QuestionPoolDto, QuestionPoolVM>();
             CreateMap<QuestionChoicesPoolDto, QuestionChoicesPoolVM>();
-            CreateMap<PagedResponse<CourseInformationDto>, PagedResponseViewModel<CourseInformationVM>>()
-                .ForMember(dest => dest.Data, opt => opt.MapFrom(src => src.Data));
         }
     }
 }

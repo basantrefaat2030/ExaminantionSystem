@@ -41,7 +41,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
 
         public async Task AddAsync(TEntity entity)
         {
-            entity.CreatedAt = DateTime.UtcNow;
+            entity.CreatedAt = DateTime.Now;
             await _dbSet.AddAsync(entity);
 
         }
@@ -51,7 +51,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             await _dbSet.Where(e => e.Id == id && !e.IsDeleted && e.IsActive)
              .ExecuteUpdateAsync(setters => setters
              .SetProperty(e => e.IsDeleted, true)
-             .SetProperty(e => e.DeletedAt, DateTime.UtcNow)
+             .SetProperty(e => e.DeletedAt, DateTime.Now)
              .SetProperty(e => e.IsActive, false));
         }
 
@@ -94,7 +94,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
                 .Where(e => ids.Contains(e.Id))
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(e => e.IsDeleted, true)
-                    .SetProperty(e => e.DeletedAt, DateTime.UtcNow)
+                    .SetProperty(e => e.DeletedAt, DateTime.Now)
                     .SetProperty(e => e.IsActive, false));
         }
 
@@ -185,7 +185,7 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             if (updatedAtProperty != null)
             {
                 var propName = "UpdatedAt";
-                var value = DateTime.UtcNow;
+                var value = DateTime.Now;
 
                 // Build the property selector: e => EF.Property<object>(e, "UpdatedAt")
                 var eParam = Expression.Parameter(typeof(TEntity), "e");
