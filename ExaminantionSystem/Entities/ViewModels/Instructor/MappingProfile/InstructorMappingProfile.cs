@@ -20,12 +20,10 @@ namespace ExaminantionSystem.Entities.ViewModels.Instructor.MappingProfile
             CreateMap<ManualExamDto, ManualExamVM>().ReverseMap();
             CreateMap<StudentExamResultDto, StudentResultVM>();
             CreateMap<StudentExamResultDto, StudentResultVM>();
-
-            // Request to DTO mappings
             CreateMap<AddManualExamVM, AddManualExamDto>();
 
-
-
+            CreateMap<ManualExamQuestionsVM, ExamQuestionDto>().ReverseMap();
+            CreateMap<ManualExamChoiceVM, ExamWithQuestionsChoicesDto>().ReverseMap();
 
         }
     }

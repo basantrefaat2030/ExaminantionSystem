@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using ExaminantionSystem.Entities.Dtos.Course;
 using ExaminantionSystem.Entities.Enums.Errors;
+using ExaminantionSystem.Entities.Models;
 using ExaminantionSystem.Entities.ViewModels;
+using ExaminantionSystem.Entities.ViewModels.Choice;
 using ExaminantionSystem.Entities.ViewModels.Course;
 using ExaminantionSystem.Entities.ViewModels.Question;
 using ExaminantionSystem.Entities.Wrappers;
@@ -30,28 +32,39 @@ namespace ExaminantionSystem.Controllers
         //[Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<CourseVM>> CreateCourse([FromBody] CreateCourseVM model)
         {
-            var currentUserId = GetCurrentUserId();
             var createCourse = _mapper.Map<CreateCourseDto>(model);
-            var result = await _courseService.CreateCourseAsync(createCourse, currentUserId);
+            var result = await _courseService.CreateCourseAsync(createCourse);
             return _mapper.Map<ResponseViewModel<CourseVM>>(result);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{courseId}")]
        // [Authorize(Roles = "Instructor")]
-        public async Task<ResponseViewModel<CourseVM>> UpdateCourse( [FromBody] UpdateCourseVM model)
+        public async Task<ResponseViewModel<CourseVM>> UpdateCourse(int courseId , [FromBody] UpdateCourseVM model)
         {
-            var currentUserId = GetCurrentUserId();
+            if (courseId != 0 && courseId != null)
+
+                return ResponseViewModel<CourseVM>.Fail(
+                GlobalErrorType.Validation,
+                    new ErrorDetailViewModel("ID_VALIDATION", "choiceId must has a value !", "courseId")
+                );
+
             var updatechoice = _mapper.Map<UpdateCourseDto>(model);
-            var result = await _courseService.UpdateCourseAsync(updatechoice, currentUserId);
+            updatechoice.courseId = courseId;
+            var result = await _courseService.UpdateCourseAsync(updatechoice, GetCurrentUserId());
             return _mapper.Map<ResponseViewModel<CourseVM>>(result);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{courseId}")]
         //[Authorize(Roles = "Instructor")]
-        public async Task<ResponseViewModel<bool>> DeleteCourse(int id)
+        public async Task<ResponseViewModel<bool>> DeleteCourse(int courseId)
         {
-            var currentUserId = GetCurrentUserId();
-            var result = await _courseService.DeleteCourseAsync(id, currentUserId);
+            if (courseId != 0 && courseId != null)
+
+                return ResponseViewModel<bool>.Fail(
+                GlobalErrorType.Validation,
+                    new ErrorDetailViewModel("ID_VALIDATION", "choiceId must has a value !", "courseId")
+                );
+            var result = await _courseService.DeleteCourseAsync(courseId, GetCurrentUserId());
             return _mapper.Map<ResponseViewModel<bool>>(result);
         }
 
@@ -65,8 +78,8 @@ namespace ExaminantionSystem.Controllers
             return _mapper.Map<ResponseViewModel<PagedResponseViewModel<CourseInformationVM>>>(result);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ResponseViewModel<CourseDetailsVM>> GetCourseDetails(int id)
+        [HttpGet("{courseId}")]
+        public async Task<ResponseViewModel<CourseDetailsVM>> GetCourseDetails(int courseId)
         {
             var result = await _courseService.GetCourseDetailsAsync(id);
             return _mapper.Map<ResponseViewModel<CourseDetailsVM>>(result);
@@ -87,8 +100,7 @@ namespace ExaminantionSystem.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
-            var currentUserId = GetCurrentUserId();
-            var result = await _courseService.GetPaginatedCoursesAsync(currentUserId, pageNumber, pageSize);
+            var result = await _courseService.GetPaginatedCoursesAsync(GetCurrentUserId(), pageNumber, pageSize);
             return _mapper.Map<ResponseViewModel<PagedResponseViewModel<CourseInformationVM>>>(result);
         }
 

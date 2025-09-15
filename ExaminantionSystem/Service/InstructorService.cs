@@ -68,9 +68,9 @@ namespace ExaminantionSystem.Service
                     new ErrorDetail("Only pending requests can be approved"));
 
             enrollmentInfo.Enrollment.Status = RequestStatus.Approved;
-            enrollmentInfo.Enrollment.EnrollmentDate = DateTime.UtcNow;
+            enrollmentInfo.Enrollment.EnrollmentDate = DateTime.Now;
             enrollmentInfo.Enrollment.IsActive = true;
-            enrollmentInfo.Enrollment.UpdatedAt = DateTime.UtcNow;
+            enrollmentInfo.Enrollment.UpdatedAt = DateTime.Now;
 
             await _studentCourseRepository.UpdateAsync(enrollmentInfo.Enrollment);
             await _studentCourseRepository.SaveChangesAsync();

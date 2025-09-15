@@ -18,7 +18,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations.SeedsData
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123"),
                     Country = "Egypt",
                     City = "Cairo",
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     IsActive = true,
                     IsDeleted = false,
                 },
@@ -30,7 +30,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations.SeedsData
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Instructor1"),
                     Country = "Egypt",
                     City = "Cairo",
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     IsActive = true,
                     IsDeleted = false,
                 },
@@ -42,7 +42,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations.SeedsData
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Instructor2"),
                     Country = "Egypt",
                     City = "Alexandria",
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     IsActive = true,
                     IsDeleted = false,
                 },
@@ -54,7 +54,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations.SeedsData
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("basant2030"),
                     Country = "Egypt",
                     City = "Cairo",
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     IsActive = true,
                     IsDeleted = false,
                 },
@@ -66,7 +66,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations.SeedsData
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Muhammed123"),
                     Country = "Egypt",
                     City = "Giza",
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     IsActive = true,
                     IsDeleted = false,
                 }
@@ -106,7 +106,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations.SeedsData
                 {
                     Id = 1,
                     UserId = 4, // Linked to Basant Refaat user
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     IsActive = true,
                     IsDeleted = false
                 },
@@ -114,7 +114,7 @@ namespace ExaminantionSystem.Infrastructure.Configurations.SeedsData
                 {
                     Id = 2,
                     UserId = 5, // Linked to Muhammed Metwally user
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     IsActive = true,
                     IsDeleted = false
                 }

@@ -4,8 +4,8 @@ namespace ExaminantionSystem.Entities.ViewModels.Course
 {
     public class UpdateCourseVM
     {
-        [Required]
-        public int CourseId { get; set; }
+        //[Required]
+        //public int CourseId { get; set; }
 
         [Required]
         public string Title { get; set; }

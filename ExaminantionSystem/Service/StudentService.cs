@@ -95,19 +95,20 @@ namespace ExaminantionSystem.Service
             await _studentCourseRepository.AddAsync(enrollment);
             await _studentCourseRepository.SaveChangesAsync();
 
-            var result = await _studentCourseRepository.GetAll(e => e.Id == enrollment.Id).ProjectTo<StudentEnrollmentDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
+            var result = await _studentCourseRepository.GetAll(e => e.Id == enrollment.Id)
+                .ProjectTo<StudentEnrollmentDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
 
 
             return Response<StudentEnrollmentDto>.Success(result);
         }
 
-        public async Task<Response<bool>> CancelEnrollmentRequestAsync(int enrollmentId, int studentId)
+        public async Task<Response<bool>> CancelEnrollmentRequestAsync(int enrollmentId, int currentUserId)
         {
             var enrollmentInfo = await _studentCourseRepository.GetAll(e => e.Id == enrollmentId)
                 .Select(e => new
                 {
                     Enrollment = e,
-                    IsOwner = e.StudentId == studentId,
+                    IsOwner = e.StudentId == currentUserId,
                     CanCancel = e.Status == RequestStatus.Pending
                 })
                 .FirstOrDefaultAsync();
@@ -127,7 +128,7 @@ namespace ExaminantionSystem.Service
                     new ErrorDetail("Only pending requests can be cancelled"));
 
             enrollmentInfo.Enrollment.Status = RequestStatus.Cancelled;
-            enrollmentInfo.Enrollment.UpdatedAt = DateTime.UtcNow;
+            enrollmentInfo.Enrollment.UpdatedAt = DateTime.Now;
 
             await _studentCourseRepository.UpdateAsync(enrollmentInfo.Enrollment);
             await _studentCourseRepository.SaveChangesAsync();
@@ -167,8 +168,7 @@ namespace ExaminantionSystem.Service
         #region studentExams
         public async Task<Response<StudentExamDto>> StartExamAsync(int examId, int currentUserId)
         {
-            var examInfo = await _examRepository.GetAll()
-                .Where(e => e.Id == examId && !e.IsDeleted)
+            var examInfo = await _examRepository.GetAll(e => e.Id == examId)
                 .Select(e => new
                 {
                     Exam = e,
@@ -207,7 +207,8 @@ namespace ExaminantionSystem.Service
             await _examResultRepository.AddAsync(examResult);
             await _examResultRepository.SaveChangesAsync();
 
-            var result = await _examResultRepository.GetAll(er => er.Id == examResult.Id).ProjectTo<StudentExamDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
+            var result = await _examResultRepository.GetAll(er => er.Id == examResult.Id)
+                .ProjectTo<StudentExamDto>(_mapper.ConfigurationProvider).FirstOrDefaultAsync();
 
             return Response<StudentExamDto>.Success(result);
         }
@@ -322,7 +323,7 @@ namespace ExaminantionSystem.Service
 
             // Update exam result
             examResultInfo.ExamResult.Score = totalScore;
-            examResultInfo.ExamResult.SubmittedAt = DateTime.UtcNow;
+            examResultInfo.ExamResult.SubmittedAt = DateTime.Now;
 
             await _examResultRepository.UpdateAsync(examResultInfo.ExamResult);
             await _examResultRepository.SaveChangesAsync();

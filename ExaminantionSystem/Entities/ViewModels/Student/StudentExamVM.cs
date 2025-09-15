@@ -2,7 +2,7 @@
 {
     public class StudentExamVM
     {
-        public int ExamResultId { get; set; }
+        //public int ExamResultId { get; set; }
         public int ExamId { get; set; }
         public string ExamTitle { get; set; }
         public int StudentId { get; set; }

@@ -104,7 +104,7 @@ namespace ExaminantionSystem.Service
                         // Set all other choices as incorrect
                         await _choiceRepository.UpdateAsync(c => c.QuestionId == choiceInfo.Choice.QuestionId && c.Id != dto.choiceId && c.IsCorrect,
                              s => s.SetProperty(c => c.IsCorrect, false)
-                                  .SetProperty(c => c.UpdatedAt, DateTime.UtcNow)
+                                  .SetProperty(c => c.UpdatedAt, DateTime.Now)
                                   
                         );
                     }

@@ -13,7 +13,7 @@ namespace ExaminantionSystem.Entities.Models
 
         public RequestStatus Status { get; set; } = RequestStatus.Pending;
 
-        public DateTime RequestDate { get; set; } = DateTime.UtcNow;
+        public DateTime RequestDate { get; set; } 
         public DateTime? EnrollmentDate { get; set; }
 
         // Navigation properties

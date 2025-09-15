@@ -5,7 +5,7 @@ namespace ExaminantionSystem.Entities.Dtos.Exam
     public class ExamResultDto
     {
 
-        public StudentExamInformation studentExamInformation { get; set; }
+        public StudentExamInformationDto studentExamInformation { get; set; }
 
         public ExamInfomationDto examInfomationDto { get; set; }
         //public double Percentage { get; set; } 
@@ -17,7 +17,7 @@ namespace ExaminantionSystem.Entities.Dtos.Exam
         public List<EvaluateQuestionResultDto> QuestionResults { get; set; }
     }
 
-    public class StudentExamInformation
+    public class StudentExamInformationDto
     {
         public int StudentId { get; set; }
         public string StudentName { get; set; }
@@ -29,4 +29,6 @@ namespace ExaminantionSystem.Entities.Dtos.Exam
 
         public string CourseName { get; set; }
     }
+
+
 }

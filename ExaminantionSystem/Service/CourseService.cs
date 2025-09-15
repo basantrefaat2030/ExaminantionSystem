@@ -149,7 +149,7 @@ namespace ExaminantionSystem.Service
                 );
             }
                 _mapper.Map(dto, course);
-                course.UpdatedAt = DateTime.UtcNow;
+                course.UpdatedAt = DateTime.Now;
 
                 await _courseRepository.UpdateAsync(course);
                 await _courseRepository.SaveChangesAsync();

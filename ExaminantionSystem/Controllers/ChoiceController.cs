@@ -23,28 +23,31 @@ namespace ExaminantionSystem.Controllers
             _mapper = mapper;
         }
 
-        [HttpPost("question/{questionId}")]
+        [HttpPost("CreateChoices/{questionId}")]
         [Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<List<ChoiceVM>>> CreateChoices(int questionId, [FromBody] List<CreateChoiceVM> model)
         {
             var createChoice = _mapper.Map<List<CreateChoiceDto>>(model);
+         
             var result = await _choiceService.CreateChoicesForQuestionAsync(createChoice, questionId, GetCurrentUserId());
             return _mapper.Map<ResponseViewModel<List<ChoiceVM>>>(result);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{choiceId}")]
         [Authorize(Roles = "Instructor")]
-        public async Task<ResponseViewModel<ChoiceVM>> UpdateChoice( [FromBody] UpdateChoiceVM model)
+        public async Task<ResponseViewModel<ChoiceVM>> UpdateChoice(int choiceId , [FromBody] UpdateChoiceVM model)
         {
-            if ( model.ChoiceId != 0 && model.ChoiceId != null )
+            if ( choiceId != 0 || choiceId != null)
             
                 return ResponseViewModel<ChoiceVM>.Fail(
                 GlobalErrorType.Validation,
-                    new ErrorDetailViewModel("ID_MISMATCH", "ID mismatch", "Route ID and body ChoiceId must match", "id")
+                    new ErrorDetailViewModel("ID_VALIDATION", "choiceId must has a value !", "choiceId")
                 );
             
 
             var updateChoice = _mapper.Map<UpdateChoiceDto>(model);
+            updateChoice.choiceId = choiceId;
+            
             var result = await _choiceService.UpdateChoiceAsync(updateChoice);
             return _mapper.Map<ResponseViewModel<ChoiceVM>>(result);
         }

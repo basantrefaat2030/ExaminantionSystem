@@ -4,8 +4,8 @@ namespace ExaminantionSystem.Entities.ViewModels.Choice
 {
     public class UpdateChoiceVM
     {
-        [Required]
-        public int ChoiceId { get; set; }
+        //[Required]
+        //public int ChoiceId { get; set; }
 
         [Required]
         public string Text { get; set; }
