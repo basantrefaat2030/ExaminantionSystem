@@ -5,7 +5,7 @@ namespace ExaminantionSystem.Entities.ViewModels.Exam
 {
     public class UpdateExamVM
     {
-        public int ExamId { get; set; } 
+       // public int ExamId { get; set; } 
 
         [Required]
         [StringLength(100)]

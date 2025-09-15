@@ -25,14 +25,14 @@ namespace ExaminantionSystem.Controllers
             _mapper = mapper;
         }
 
-        [HttpPost("ApproveEnrollment")]
+        [HttpPost("ApproveEnrollment/{enrollmentId}")]
         public async Task<ResponseViewModel<ApproveEnrollmentVM>> ApproveEnrollment(int enrollmentId)
         {
             var result = await _instructorService.ApproveEnrollmentAsync(enrollmentId);
             return _mapper.Map<ResponseViewModel<ApproveEnrollmentVM>>(result);
         }
 
-        [HttpPost("RejectEnrollment")]
+        [HttpPost("RejectEnrollment/{enrollmentId}")]
         public async Task<ResponseViewModel<RejectEnrollmentVM>> RejectEnrollment(int enrollmentId)
         {
             var result = await _instructorService.RejectEnrollmentAsync(enrollmentId);
@@ -40,12 +40,12 @@ namespace ExaminantionSystem.Controllers
         }
 
         [HttpGet("GetEnrollmentRequests")]
-        public async Task<ResponseViewModel<PagedResponseViewModel<EnrollmentVM>>> GetEnrollmentRequests([FromQuery] int instructorId, 
+        public async Task<ResponseViewModel<PagedResponseViewModel<EnrollmentVM>>> GetEnrollmentRequests( 
             [FromQuery] RequestStatus? status, 
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
-            var result = await _instructorService.GetCourseEnrollmentRequestsAsync(instructorId ,status, pageNumber,pageSize);
+            var result = await _instructorService.GetCourseEnrollmentRequestsAsync(GetCurrentUserId() ,status, pageNumber,pageSize);
 
             return _mapper.Map<ResponseViewModel<PagedResponseViewModel<EnrollmentVM>>>(result);
         }

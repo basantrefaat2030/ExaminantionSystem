@@ -28,7 +28,7 @@ namespace ExaminantionSystem.Controllers
             _mapper = mapper;
         }
 
-        [HttpPost]
+        [HttpPost("CreateQuestion")]
         [Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<QuestionVM>> CreateQuestion([FromBody] CreateQuestionVM model)
         {
@@ -52,7 +52,7 @@ namespace ExaminantionSystem.Controllers
             return _mapper.Map<ResponseViewModel<QuestionVM>>(result);
         }
 
-        [HttpPut("{questionId}")]
+        [HttpPut("UpdateQuestion/{questionId}")]
         [Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<QuestionVM>> UpdateQuestion([FromBody] UpdateQuestionVM model)
         {
@@ -64,32 +64,32 @@ namespace ExaminantionSystem.Controllers
                 );
             
             var dto = _mapper.Map<UpdateQuestionDto>(model);
-            var result = await _questionService.UpdateQuestionAsync(dto, GetCurrentUserId());
+            var result = await _questionService.UpdateQuestionAsync(dto);
             return _mapper.Map<ResponseViewModel<QuestionVM>>(result);
         }
 
-        [HttpDelete("{questionId}")]
+        [HttpDelete("DeleteQuestion/{questionId}")]
         [Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<bool>> DeleteQuestion(int questionId)
         {
 
             // First delete all choices for this question using the new bulk method
-            var choicesResult = await _questionService.DeleteAllChoicesForQuestionAsync(questionId, GetCurrentUserId());
+            var choicesResult = await _questionService.DeleteAllChoicesForQuestionAsync(questionId);
             if (!choicesResult.Succeeded)
                 return _mapper.Map<ResponseViewModel<bool>>(choicesResult);
             
 
             // Then delete the question
-            var questionResult = await _questionService.DeleteQuestionAsync(questionId, GetCurrentUserId());
+            var questionResult = await _questionService.DeleteQuestionAsync(questionId);
             return _mapper.Map<ResponseViewModel<bool>>(questionResult);
         }
 
-        [HttpGet("{questionId}")]
+        [HttpGet("GetQuestion/{questionId}")]
         [Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<QuestionVM>> GetQuestion(int questionId)
         {
             // This would be a new method in your service
-            var result = await _choiceService.GetChoicesForQuestionAsync(questionId, GetCurrentUserId());
+            var result = await _choiceService.GetChoicesForQuestionAsync(questionId);
             return _mapper.Map<ResponseViewModel<QuestionVM>>(result);
         }
 

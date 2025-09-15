@@ -8,6 +8,7 @@ using ExaminantionSystem.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using ExaminantionSystem.Entities.ViewModels.Choice;
 
 namespace ExaminantionSystem.Controllers
 {
@@ -32,24 +33,24 @@ namespace ExaminantionSystem.Controllers
             return _mapper.Map<ResponseViewModel<ExamVM>>(result);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("UpdateExam/{examId}")]
         [Authorize(Roles = "Instructor")]
-        public async Task<ResponseViewModel<ExamVM>> UpdateExam([FromBody] UpdateExamVM model)
+        public async Task<ResponseViewModel<ExamVM>> UpdateExam(int examId ,[FromBody] UpdateExamVM model)
         {
-            if (model.ExamId != 0 && model.ExamId != null)
-            
-                return ResponseViewModel<ExamVM>.Fail(
-                GlobalErrorType.Validation,
-                    new ErrorDetailViewModel("ID_MISMATCH", "ID mismatch", "Route ID and body ExamId must match", "id")
-                );
-            
+            if (examId != 0 && examId != null)
+
+                return ResponseViewModel<ExamVM>.Fail(GlobalErrorType.Validation,
+                   new ErrorDetailViewModel("ID_VALIDATION", "choiceId must has a value !", "choiceId"));
+
 
             var updateExamInfo = _mapper.Map<UpdateExamDto>(model);
+            updateExamInfo.ExamId = examId;
+
             var result = await _examService.UpdateExamAsync(updateExamInfo, GetCurrentUserId());
             return _mapper.Map<ResponseViewModel<ExamVM>>(result);
         }
 
-        [HttpDelete("{examId}")]
+        [HttpDelete("DeleteExam/{examId}")]
         [Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<bool>> DeleteExam(int examId)
         {
@@ -65,10 +66,10 @@ namespace ExaminantionSystem.Controllers
         //    return _mapper.Map<ResponseViewModel<ExamVM>>(result);
         //}
 
-        [HttpGet("{id}/details")]
-        public async Task<ResponseViewModel<ExamWithQuestionsVM>> GetExamWithQuestions(int id)
+        [HttpGet("{examId}/ExamDetails")]
+        public async Task<ResponseViewModel<ExamWithQuestionsVM>> GetExamWithQuestions(int examId)
         {
-            var result = await _examService.GetExamWithQuestionsAsync(id);
+            var result = await _examService.GetExamWithQuestionsAsync(examId);
             return _mapper.Map<ResponseViewModel<ExamWithQuestionsVM>>(result);
         }
 
@@ -80,10 +81,10 @@ namespace ExaminantionSystem.Controllers
             return _mapper.Map<ResponseViewModel<ExamWithQuestionsVM>>(result);
         }
 
-        [HttpGet("course/{courseId}")]
+        [HttpGet("GetExam/{courseId}")]
         public async Task<ResponseViewModel<List<ExamVM>>> GetExamsByCourse(int courseId)
         {
-            var result = await _examService.GetExamsByCourseAsync(courseId , GetCurrentUserId());
+            var result = await _examService.GetExamsByCourseAsync(courseId);
             return _mapper.Map<ResponseViewModel<List<ExamVM>>>(result);
         }
 

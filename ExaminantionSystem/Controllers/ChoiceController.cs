@@ -37,7 +37,7 @@ namespace ExaminantionSystem.Controllers
         [Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<ChoiceVM>> UpdateChoice(int choiceId , [FromBody] UpdateChoiceVM model)
         {
-            if ( choiceId != 0 || choiceId != null)
+            if ( choiceId != 0 && choiceId != null)
             
                 return ResponseViewModel<ChoiceVM>.Fail(
                 GlobalErrorType.Validation,
