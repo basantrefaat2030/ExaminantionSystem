@@ -3,9 +3,9 @@ using ExaminantionSystem.Entities.Dtos.Exam;
 
 namespace ExaminantionSystem.Entities.ViewModels.Exam.MappingProfile
 {
-    public class ExamAutoMapperProfile:Profile
+    public class ExamMappingProfile:Profile
     {
-        public ExamAutoMapperProfile()
+        public ExamMappingProfile()
         {
             // ViewModel to DTO mappings
             CreateMap<CreateExamVM, CreateExamDto>();

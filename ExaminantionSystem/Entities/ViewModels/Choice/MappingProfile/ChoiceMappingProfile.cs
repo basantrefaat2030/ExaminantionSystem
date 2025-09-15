@@ -3,9 +3,9 @@ using ExaminantionSystem.Entities.Dtos.Choice;
 
 namespace ExaminantionSystem.Entities.ViewModels.Choice.MappingProfile
 {
-    public class ChoiceAutoMapperProfile :Profile
+    public class ChoiceMappingProfile :Profile
     {
-        public ChoiceAutoMapperProfile()
+        public ChoiceMappingProfile()
         {
             // ViewModel to DTO mappings
             CreateMap<CreateChoiceVM, CreateChoiceDto>();

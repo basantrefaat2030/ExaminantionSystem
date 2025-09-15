@@ -5,9 +5,9 @@ using ExaminantionSystem.Entities.ViewModels.Choice;
 
 namespace ExaminantionSystem.Entities.ViewModels.Question.MappingProfile
 {
-    public class QuestionAutoMapperProfile :Profile
+    public class QuestionMappingProfile :Profile
     {
-        public QuestionAutoMapperProfile()
+        public QuestionMappingProfile()
         {
             // ViewModel to DTO mappings
             CreateMap<CreateQuestionVM, CreateQuestionDto>();

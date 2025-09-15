@@ -28,14 +28,13 @@ namespace ExaminantionSystem.Entities.Dtos.Student.MappingProfile
                     ExamTitle = src.Exam.Title,
                     CourseName = src.Exam.Course.Title
                 }))
-                .ForMember(dest => dest.studentExamInformation, opt => opt.MapFrom(src => new StudentExamInformation
+                .ForMember(dest => dest.studentExamInformation, opt => opt.MapFrom(src => new StudentExamInformationDto
                 {
                     StudentId = src.Student.Id,
                     StudentName = src.Student.User.FullName
                 }))
                 .ForMember(dest => dest.ExamStartAt, opt => opt.MapFrom(src => src.StartedAt.Value))
-                .ForMember(dest => dest.ExamCompletedAt, opt => opt.MapFrom(src => src.SubmittedAt.Value))
-                .ForMember(dest => dest.QuestionResults, opt => opt.Ignore()); // Will be set manually
+                .ForMember(dest => dest.ExamCompletedAt, opt => opt.MapFrom(src => src.SubmittedAt.Value));
 
             CreateMap<StudentAnswer, StudentAnswerDto>().ReverseMap();
 
