@@ -34,20 +34,13 @@ namespace ExaminantionSystem.Service
         }
 
         #region QuesionCRUDOperation
-        public async Task<Response<QuestionDto>> CreateQuestionAsync(CreateQuestionDto dto, int currentUserId)
+        public async Task<Response<QuestionDto>> CreateQuestionAsync(CreateQuestionDto dto , int currentUserId)
         {
-            var courseInfo = await _courseRepository.GetAll(c => c.Id == dto.CourseId)
-                .Select(c => new { IsAuthorized =  c.InstructorId == currentUserId })
-                .FirstOrDefaultAsync();
+            var courseInfo = await _courseRepository.GetByIdAsync(dto.CourseId);
 
             if (courseInfo == null)
                 return Response<QuestionDto>.Fail(ErrorType.COURSE_NOT_FOUND,
                     new ErrorDetail("Course not found"));
-
-            if (!courseInfo.IsAuthorized)
-                    return Response<QuestionDto>.Fail(ErrorType.ACCESS_DENIED,
-                        new ErrorDetail("You can only create questions for your own courses"));
-            
 
             var question = _mapper.Map<Question>(dto);
             question.CreatedBy = currentUserId;
@@ -73,25 +66,20 @@ namespace ExaminantionSystem.Service
             return Response<QuestionDto>.Success(result);
         }
 
-        public async Task<Response<bool>> DeleteQuestionAsync(int questionId, int currentUserId)
+        public async Task<Response<bool>> DeleteQuestionAsync(int questionId)
         {
 
-            var questionInfo = await _questionRepository.GetAll()
-                .Where(q => q.Id == questionId && !q.IsDeleted)
+            var questionInfo = await _questionRepository.GetWithTrancking(q => q.Id == questionId)
                 .Select(q => new
                 {
                     Question = q,
-                    IsAuthorized = q.Course.InstructorId == currentUserId,
+                    //IsAuthorized = q.Course.InstructorId == currentUserId,
 
                 }).FirstOrDefaultAsync();
 
             if (questionInfo == null)
                 return Response<bool>.Fail(ErrorType.QUESTION_NOT_FOUND,
                     new ErrorDetail( "Question not found"));
-
-            if (!questionInfo.IsAuthorized)
-                return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
-                    new ErrorDetail("You can only delete questions from your own courses"));
 
             var isUsedInExams = await _questionRepository.IsQuestionInExamExistAsync(questionId);
 
@@ -109,24 +97,20 @@ namespace ExaminantionSystem.Service
         }
 
 
-        public async Task<Response<QuestionDto>> UpdateQuestionAsync(UpdateQuestionDto dto, int currentUserId)
+        public async Task<Response<QuestionDto>> UpdateQuestionAsync(UpdateQuestionDto dto)
         {
 
-            var questionInfo = await _questionRepository.GetAll(q => q.Id == dto.QuestionId)
+            var questionInfo = await _questionRepository.GetWithTrancking(q => q.Id == dto.QuestionId)
                 .Select(q => new
                 {
                     Question = q,
-                    IsAuthorized = q.Course.InstructorId == currentUserId,
+                    //IsAuthorized = q.Course.InstructorId == currentUserId,
                     
                 }).FirstOrDefaultAsync();
             
             if (questionInfo == null)
                 return Response<QuestionDto>.Fail(ErrorType.QUESTION_NOT_FOUND,
                     new ErrorDetail("Question not found"));
-
-            if (!questionInfo.IsAuthorized)
-                return Response<QuestionDto>.Fail(ErrorType.ACCESS_DENIED,
-                    new ErrorDetail("You can only update questions for your own courses"));
 
             var isUsedInActiveExams = await _examRepository.IsQuestionInExamActiveAsync(dto.QuestionId);
 
@@ -148,20 +132,13 @@ namespace ExaminantionSystem.Service
             
         }
 
-        public async Task<Response<List<ChoiceDto>>> CreateChoicesForQuestionAsync(List<CreateChoiceDto> choicesDto, int questionId, int currentUserId)
+        public async Task<Response<List<ChoiceDto>>> CreateChoicesForQuestionAsync(List<CreateChoiceDto> choicesDto, int questionId , int currentUserId)
         {
-            var questionInfo = await _questionRepository.GetAll(q => q.Id == questionId)
-                .Select(q => new { IsAuthorized = q.Course.InstructorId == currentUserId })
-                .FirstOrDefaultAsync();
+            var questionInfo = await _questionRepository.GetByIdAsync(questionId);
 
             if (questionInfo == null)
                 return Response<List<ChoiceDto>>.Fail(ErrorType.QUESTION_NOT_FOUND,
                     new ErrorDetail("Question not found"));
-
-
-            if (!questionInfo.IsAuthorized)
-                return Response<List<ChoiceDto>>.Fail(ErrorType.ACCESS_DENIED,
-                    new ErrorDetail("You can only add choices to your own questions"));
 
             var correctChoicesCount = choicesDto.Count(c => c.IsCorrect);
             if (correctChoicesCount != 1)
@@ -197,14 +174,14 @@ namespace ExaminantionSystem.Service
             
         }
 
-        public async Task<Response<bool>> DeleteAllChoicesForQuestionAsync(int questionId, int currentUserId)
+        public async Task<Response<bool>> DeleteAllChoicesForQuestionAsync(int questionId)
         {
             // First verify the question exists and user has access
             var questionInfo = await  _questionRepository.GetAll(a => a.Id == questionId).Select(q => new 
             {
                 courseId = q.CourseId,
                 CourseInfo = q.Course,
-                IsAuthorized = q.Course.InstructorId == currentUserId,
+                //IsAuthorized = q.Course.InstructorId == currentUserId,
                 choices = q.Choices.Where(a => a.IsActive && !a.IsDeleted)
 
             
@@ -217,10 +194,6 @@ namespace ExaminantionSystem.Service
             if (questionInfo.CourseInfo == null)
                 return Response<bool>.Fail(ErrorType.COURSE_NOT_FOUND,
                     new ErrorDetail("COURSE_NOT_FOUND", "Course not found"));
-
-            if (!questionInfo.IsAuthorized)
-                return Response<bool>.Fail(ErrorType.ACCESS_DENIED,
-                    new ErrorDetail("ACCESS_DENIED", "You can only delete choices for your own questions"));
 
             // Check if any choice is used in active exams
             var hasActiveExams = await _examRepository.IsQuestionInExamActiveAsync(questionId);

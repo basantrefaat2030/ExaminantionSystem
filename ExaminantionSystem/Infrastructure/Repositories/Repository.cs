@@ -61,6 +61,12 @@ namespace ExaminantionSystem.Infrastructure.Repositories
             return query.Where(expression); 
         }
 
+        public IQueryable<TEntity> GetWithTrancking(Expression<Func<TEntity, bool>> expression)
+        {
+            var query = GetAll();
+            return query.AsTracking().Where(expression);
+        }
+
         public async Task AddRangeAsync(IEnumerable<TEntity> entities)
         {
             await _dbSet.AddRangeAsync(entities);

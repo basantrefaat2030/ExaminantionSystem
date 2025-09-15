@@ -47,11 +47,11 @@ namespace ExaminantionSystem.Service
         }
 
         #region CourseCRUD
-        public async Task<Response<CourseDto>> CreateCourseAsync(CreateCourseDto coursedto , int currentUserId)
+        public async Task<Response<CourseDto>> CreateCourseAsync(CreateCourseDto coursedto)
         {
 
-                // Validate instructor exists
-                var instructor = await _instructorRepository.GetByIdAsync(coursedto.InstructorId);
+            // Validate instructor exists
+            var instructor = await _instructorRepository.GetByIdAsync(coursedto.InstructorId);
                 if (instructor == null)
                     return Response<CourseDto>.Fail(
                         ErrorType.INSTRUCTOR_NOT_FOUND,
@@ -69,7 +69,7 @@ namespace ExaminantionSystem.Service
 
 
                 var course = _mapper.Map<Course>(coursedto);
-                course.CreatedBy = currentUserId;
+                course.CreatedBy = coursedto.InstructorId;
 
                 await _courseRepository.AddAsync(course);
                 await _courseRepository.SaveChangesAsync();
@@ -83,8 +83,7 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<bool>> DeleteCourseAsync(int courseId , int currentUserId)
         {
-            var courseInfo = await _courseRepository.GetAll()
-                 .Where(c => c.Id == courseId)
+            var courseInfo = await _courseRepository.GetWithTrancking(c => c.Id == courseId)
                  .Select(c => new
                  {
                      Course = c,
@@ -169,16 +168,14 @@ namespace ExaminantionSystem.Service
             {
                 var instructor = await _instructorRepository.GetByIdAsync(currentUserId.Value);
                 if (instructor == null)
-                {
                     return Response<PagedResponse<CourseInformationDto>>.Fail(
                         ErrorType.INSTRUCTOR_NOT_FOUND,
                         new ErrorDetail("Instructor not found", $"Instructor with ID {currentUserId} not found")
                     );
-                }
+                
             }
 
-            var query = _courseRepository.GetAll(
-                c => c.InstructorId == currentUserId && !c.IsDeleted);
+            var query = _courseRepository.GetAll(c => c.InstructorId == currentUserId);
 
             //If pageNumber = 1 → Skip(0) → start from first record
             //If pageNumber = 2 → Skip(pageSize) → skip first 10, take next 10
@@ -230,19 +227,15 @@ namespace ExaminantionSystem.Service
         public async Task<Response<List<QuestionPoolDto>>> GetQuestionPoolByCourseAsync(int courseId, int currentUserId)
         {
             
-            var courseInfo = await _courseRepository.GetAll(c => c.Id == courseId).Select(c => new { c.InstructorId }).FirstOrDefaultAsync();
+            var courseInfo = await _courseRepository.GetAll(c => c.Id == courseId).Select(c => new { IsAuthorized = c.InstructorId != currentUserId , Questions = c.Questions.Where(q => q.IsActive && !q.IsDeleted)}).FirstOrDefaultAsync();
             if (courseInfo == null)
                 return Response<List<QuestionPoolDto>>.Fail(ErrorType.COURSE_NOT_FOUND,
                     new ErrorDetail("Course not found"));
 
-            if (courseInfo.InstructorId != currentUserId)
+            if (!courseInfo.IsAuthorized)
                 return Response<List<QuestionPoolDto>>.Fail(ErrorType.NOT_COURSE_OWNER,
                     new ErrorDetail("You can only access questions from your own courses"));
 
-            // Get all questions for this course with their choices
-            var questions = await _questionRepository.GetAll(q => q.CourseId == courseId)
-                .OrderBy(q => q.QuestionLevel)
-                .ToListAsync();
 
             //var questionIds = questions.Select(q => q.Id).ToList();
 
@@ -251,13 +244,7 @@ namespace ExaminantionSystem.Service
             //    .Where(c => questionIds.Contains(c.QuestionId) && !c.IsDeleted)
             //    .ToListAsync();
 
-            //var questionPool = _mapper.Map<List<QuestionPoolDto>>(questions);
-
-
-            var questionPool = await _questionRepository.GetAll(q => q.CourseId == courseId)
-                .OrderBy(q => q.QuestionLevel)
-                .ProjectTo<QuestionPoolDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+            var questionPool = _mapper.Map<List<QuestionPoolDto>>(courseInfo.Questions);
 
             return Response<List<QuestionPoolDto>>.Success(questionPool);
 

@@ -19,6 +19,7 @@
         ENROLLMENT_EXIST,
         ENROLLMENT_NOT_FOUND,
         CANCEL_NOT_ALLOWED,
+        NOT_ENROLLMENT_FOUND,
 
         // Exam errors
         EXAM_NOT_FOUND,

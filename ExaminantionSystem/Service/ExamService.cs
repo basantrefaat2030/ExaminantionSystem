@@ -46,11 +46,11 @@ namespace ExaminantionSystem.Service
         {
 
             var courseInfo = await _courseRepository.GetAll(c => c.Id == dto.CourseId)
-                                  .Select(c => new
-                                  {
-                                      IsAuthorized = c.InstructorId == currentUserId
-                                  })
-                                  .FirstOrDefaultAsync();
+                .Select(c => new
+                {
+                    IsAuthorized = c.InstructorId == currentUserId
+                }).FirstOrDefaultAsync();
+
             if (courseInfo == null)
                 return Response<ExamDto>.Fail(ErrorType.COURSE_NOT_FOUND, new ErrorDetail("Course not found"));
 
@@ -83,7 +83,7 @@ namespace ExaminantionSystem.Service
         {
             // Get exam
 
-            var examInfo = await _examRepository.GetAll(e => e.Id == examDto.ExamId).Select(exam => new
+            var examInfo = await _examRepository.GetWithTrancking(e => e.Id == examDto.ExamId).Select(exam => new
             {
                 Exam = exam,
                 ExamStarted = exam.StartDate > DateTime.Now,
@@ -118,7 +118,7 @@ namespace ExaminantionSystem.Service
 
         public async Task<Response<bool>> DeleteExamAsync(int examId, int currentUserId)
         {
-            var examInfo = await _examRepository.GetAll(e => e.Id == examId).Select(exam => new
+            var examInfo = await _examRepository.GetWithTrancking(e => e.Id == examId).Select(exam => new
             {
                 IsAuthorized = exam.Course.InstructorId == currentUserId,
 
@@ -253,13 +253,13 @@ namespace ExaminantionSystem.Service
 
         }
 
-        public async Task<Response<List<ExamDto>>> GetExamsByCourseAsync(int courseId, int currentUserId)
+        public async Task<Response<List<ExamDto>>> GetExamsByCourseAsync(int courseId)
         {
             var courseExams = await _courseRepository.GetAll(c => c.Id == courseId)
                 .Select(c => new
                 {
                     Course = c,
-                    IsAuthorized = c.InstructorId == currentUserId,
+                   // IsAuthorized = c.InstructorId == currentUserId,
                     CourseExamsInfo = c.Exams
                         .Where(e => e.IsActive && !e.IsDeleted)
                         .Select(e => new ExamDto
@@ -285,10 +285,6 @@ namespace ExaminantionSystem.Service
 
             if (courseExams.Course == null)
                 return Response<List<ExamDto>>.Fail(ErrorType.COURSE_NOT_FOUND, new ErrorDetail("Course not found"));
-
-            if (!courseExams.IsAuthorized)
-                return Response<List<ExamDto>>.Fail(ErrorType.ACCESS_DENIED,
-                    new ErrorDetail("You can only view exams for your own courses"));
 
             if (!courseExams.CourseExamsInfo.Any())
                 return Response<List<ExamDto>>.Fail(ErrorType.THIS_COURSE_NOT_HAS_EXAMS,

@@ -45,7 +45,7 @@ namespace ExaminantionSystem.Controllers
             
 
             var updateChoice = _mapper.Map<UpdateChoiceDto>(model);
-            var result = await _choiceService.UpdateChoiceAsync(updateChoice, GetCurrentUserId());
+            var result = await _choiceService.UpdateChoiceAsync(updateChoice);
             return _mapper.Map<ResponseViewModel<ChoiceVM>>(result);
         }
 
@@ -53,8 +53,7 @@ namespace ExaminantionSystem.Controllers
         [Authorize(Roles = "Instructor")]
         public async Task<ResponseViewModel<bool>> DeleteChoice(int choiceId)
         {
-            var currentUserId = GetCurrentUserId();
-            var result = await _choiceService.DeleteChoiceAsync(choiceId, currentUserId);
+            var result = await _choiceService.DeleteChoiceAsync(choiceId);
             return _mapper.Map<ResponseViewModel<bool>>(result);
         }
 

@@ -9,6 +9,7 @@ namespace ExaminantionSystem.Infrastructure
 
         IQueryable<TEntity> GetAll();
         IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> expression);
+        IQueryable<TEntity> GetWithTrancking(Expression<Func<TEntity, bool>> expression);
         Task<TEntity> GetByIdAsync(int id);
         Task<TEntity> GetByIdTrackingAsync(int id);
 
