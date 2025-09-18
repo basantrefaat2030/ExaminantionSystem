@@ -6,10 +6,11 @@ namespace ExaminantionSystem.Entities.Dtos.User
 {
     public class UserLoginDto
     {
+        //public int userId { get; set; } 
         [Required]
-        public string EmailAddress { get; set; }
+        public string emailAddress { get; set; }
         [Required]
-        public string Password { get; set; }
+        public string password { get; set; }
 
     }
 }

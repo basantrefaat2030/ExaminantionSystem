@@ -14,6 +14,7 @@ using ExaminantionSystem.Entities.Dtos.Student.MappingProfile;
 using ExaminantionSystem.Entities.Dtos.Ouestion.MappingProfile;
 using ExaminantionSystem.Entities.Dtos.Choice.MappingProfile;
 using ExaminantionSystem.Entities.Dtos.Exam.MappingProfile;
+using ExaminantionSystem.Helper;
 
 namespace ExaminantionSystem.Extentions
 {
@@ -44,6 +45,8 @@ namespace ExaminantionSystem.Extentions
             services.AddScoped<ChoiceService>();
             services.AddScoped<StudentService>();
             services.AddScoped<InstructorService>();
+            services.AddScoped<UserService>();
+            services.AddScoped<IPasswordHasher, PasswordHasher>();
 
             //register Auto Mapper for Services
             services.AddAutoMapper(typeof(CourseServiceMappingProfile));

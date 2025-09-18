@@ -50,8 +50,10 @@
         CHOICE_IN_ACTIVE_EXAM,
 
 
-        // Access errors
+        // User access and errors
         ACCESS_DENIED,
+        USER_NOT_FOUND,
+        INVALID_PASSWORD_CREDENTIALS
 
     }
 }
